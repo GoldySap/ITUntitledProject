@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Craft Prototype</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: sans-serif;
+      background: #111;
+      color: white;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    #inventory {
+      display: flex;
+      gap: 15px;
+      margin: 10px;
+    }
+
+    .material {
+      font-size: 30px;
+      cursor: grab;
+      user-select: none;
+      transition: transform 0.2s;
+    }
+
+    #result {
+      margin-top: 10px;
+      font-size: 1.2rem;
+      color: gold;
+    }
+
+    canvas {
+      border: 2px solid #444;
+      background: #222;
+      border-radius: 10px;
+      margin-top: 10px;
+    }
+  </style>
+</head>
+<body>
+  <h1>Craft Prototype</h1>
+
+  <div id="inventory">
+    <div class="material" data-name="o">o</div>
+    <div class="material" data-name="x">x</div>
+    <div class="material" data-name="#-wing">#</div>
+  </div>
+
+  <canvas id="gameCanvas" width="800" height="600"></canvas>
+
+  <div id="result"></div>
+
+  <script>
+    const canvas = document.getElementById("gameCanvas");
+    const ctx = canvas.getContext("2d");
+
+    let mouse = { x: 0, y: 0, down: false };
+    let ingredients = [];
+    let particles = [];
+    let selected = [];
+
+    const recipes = {
+      "o+x": "Potion of Transformation",
+      "x+#": "Potion of Flight",
+      "o+#": "Potion of Vision"
+    };
+
+    class Ingredient {
+      constructor(x, y, emoji, name) {
+        this.x = x;
+        this.y = y;
+        this.vx = 0;
+        this.vy = 0;
+        this.size = 40;
+        this.emoji = emoji;
+        this.name = name;
+        this.dragging = false;
+        this.offsetX = 0;
+        this.offsetY = 0;
+      }
+
+      draw() {
+        ctx.font = this.size + "px serif";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillText(this.emoji, this.x, this.y);
+      }
+
+      update() {
+        if (this.dragging && mouse.down) {
+          this.x = mouse.x - this.offsetX;
+          this.y = mouse.y - this.offsetY;
+        } else {
+          this.x += this.vx;
+          this.y += this.vy;
+          this.vx *= 0.9;
+          this.vy *= 0.9;
+        }
+      }
+    }
+
+    class Particle {
+      constructor(x, y, color) {
+        this.x = x;
+        this.y = y;
+        this.vx = (Math.random() - 0.5) * 2;
+        this.vy = Math.random() * -2 - 1;
+        this.alpha = 1;
+        this.color = color;
+        this.size = 5 + Math.random() * 5;
+      }
+
+      update() {
+        this.x += this.vx;
+        this.y += this.vy;
+        this.alpha -= 0.02;
+      }
+
+      draw() {
+        ctx.fillStyle = `rgba(${this.color}, ${this.alpha})`;
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+
+    function isInsideCauldron(ingredient) {
+      const dx = ingredient.x - canvas.width / 2;
+      const dy = ingredient.y - canvas.height / 2;
+      return Math.hypot(dx, dy) < 50;
+    }
+
+    function triggerMix(ingredient) {
+      for (let i = 0; i < 30; i++) {
+        particles.push(new Particle(ingredient.x, ingredient.y, "200,100,255"));
+      }
+
+      selected.push(ingredient.name);
+      removeIngredient(ingredient);
+
+      if (selected.length === 2) {
+        const combo = selected.join("+");
+        const reverse = selected.slice().reverse().join("+");
+        const result = recipes[combo] || recipes[reverse];
+        document.getElementById("result").textContent =
+          result ? `You brewed: ${result}!` : "Nothing happened...";
+        selected.forEach(name => spawnMaterial(name));
+        selected = [];
+      }
+    }
+
+    function removeIngredient(ingredient) {
+      ingredients = ingredients.filter(i => i !== ingredient);
+    }
+
+    function spawnMaterial(name) {
+      const el = document.querySelector(`.material[data-name="${name}"]`);
+      if (!el) return;
+      const rect = canvas.getBoundingClientRect();
+      const x = 100 + Math.random() * 200;
+      const y = 500 + Math.random() * 50;
+      const ingredient = new Ingredient(x, y, el.textContent, name);
+      ingredients.push(ingredient);
+    }
+
+    canvas.addEventListener("mousedown", e => {
+        mouse.down = true;
+        const rect = canvas.getBoundingClientRect();
+        mouse.x = e.clientX - rect.left;
+        mouse.y = e.clientY - rect.top;
+
+        for (let i = ingredients.length - 1; i >= 0; i--) {
+            const ing = ingredients[i];
+            const dx = mouse.x - ing.x;
+            const dy = mouse.y - ing.y;
+            const dist = Math.hypot(dx, dy);
+
+            if (dist < ing.size / 2) {
+            ing.dragging = true;
+            ing.offsetX = dx;
+            ing.offsetY = dy;
+            break;
+            }
+        }
+    });
+
+
+    canvas.addEventListener("mouseup", () => {
+      mouse.down = false;
+      ingredients.forEach(i => {
+        if (i.dragging) {
+          i.dragging = false;
+          if (isInsideCauldron(i)) triggerMix(i);
+        }
+      });
+    });
+
+    document.querySelectorAll(".material").forEach(el => {
+      el.addEventListener("mousedown", e => {
+        const rect = canvas.getBoundingClientRect();
+        const ingredient = new Ingredient(
+          mouse.x,
+          mouse.y,
+          el.textContent,
+          el.dataset.name
+        );
+        ingredient.dragging = true;
+        ingredient.offsetX = e.offsetX;
+        ingredient.offsetY = e.offsetY;
+        ingredients.push(ingredient);
+      });
+    });
+
+    function animate() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      ctx.fillStyle = "white";
+      ctx.beginPath();
+      ctx.arc(canvas.width / 2, canvas.height / 2, 50, 0, Math.PI * 2);
+      ctx.fill();
+
+      ingredients.forEach(i => {
+        i.update();
+        i.draw();
+      });
+
+      particles.forEach((p, idx) => {
+        p.update();
+        p.draw();
+        if (p.alpha <= 0) particles.splice(idx, 1);
+      });
+
+      requestAnimationFrame(animate);
+    }
+
+    animate();
+  </script>
+</body>
+</html>

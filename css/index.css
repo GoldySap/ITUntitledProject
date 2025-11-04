@@ -1,0 +1,71 @@
+body, header, main, table, tr, td{
+    display: flex;
+}
+
+body {
+    width: 100vw;
+    height: 100vh;
+    margin: 0;
+    overflow: hidden;
+    flex-direction: column;
+}
+
+header {
+    width: 100%;
+    height: auto;
+    padding: 1% 1% 1% 1%;
+    justify-content: center;
+    align-items: center;
+    box-shadow: black 0px 0px 20px 0px;
+}
+
+main {
+    width: 100%;
+    height: auto;
+    padding: 1% 1% 1% 1%;
+    justify-content: center;
+    align-items: center;
+}
+
+table {
+    width: 100%;
+    width: 100%;
+}
+
+tbody {
+    width: 100%;
+    height: 100%;
+}
+
+tr {
+    /* help */
+    justify-content: center;
+    align-items: center;
+}
+
+td {
+    width: fit-content;
+    height: fit-content;
+    background-color: rgb(26, 26, 26);
+    color: white;
+    padding: 5vw 5vw 5vw 5vw;
+    border-radius: 20%;
+    margin: 4%;
+    box-shadow: grey 0px 5px 3px 0px;
+    user-select: none;
+}
+
+td:hover {
+    background-color: rgb(62, 62, 62);
+    box-shadow: grey 0px 5px 3px 0px, inset rgb(166, 166, 166) 0px 0px 3px 0px;
+    transition: all 0.2s;
+    pointer-events:painted;
+    text-decoration: none;
+    cursor: pointer;
+}
+
+td:active{
+    background-color: rgb(99, 99, 99), inset rgb(0, 0, 0);
+    box-shadow: black 0px 0px 3px 0px, inset rgb(0, 0, 0) 0px 0px 3px 0px;
+    transition: all ease-in-out 0.2s;
+}

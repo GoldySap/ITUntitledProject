@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Crafting Prototype</title>
+  <link rel="stylesheet" href="../css/test.css">
+</head>
+<body>
+  <div class="container">
+    <h1>Crafting prototype</h1>
+    <div class="row">
+      <div class="panel palette">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <strong>Palette</strong>
+          <span class="small">Drag tokens into the workspace</span>
+        </div>
+        <div class="list" id="paletteList" style="margin-top:12px"></div>
+
+        <div class="add-ingredient">
+          <input id="newLabel" placeholder="Add token (e.g. O, X, H)" />
+          <button id="addBtn">Add</button>
+        </div>
+      </div>
+
+      <div class="panel" style="flex:2">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <strong>Workspace</strong>
+          <div class="small">Sequence: <span id="sequenceString">(empty)</span></div>
+        </div>
+
+        <div id="workspace" class="workspace" ondragover="event.preventDefault()"></div>
+
+        <div class="actions">
+          <button id="fuseOnce">Fuse once</button>
+          <button id="autoFuse">Auto-fuse</button>
+          <button id="clear">Clear</button>
+        </div>
+
+        <div class="compact" id="compact">Compact: —</div>
+        <div class="info" id="counts"></div>
+      </div>
+    </div>
+  </div>
+
+  <script src="../js/test.js"></script>
+</body>
+</html>
