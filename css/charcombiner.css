@@ -48,6 +48,12 @@ h1 {
     min-height: 140px;
 }
 
+.innerpanel {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
 .palette {
     width: 260px;
 }

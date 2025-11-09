@@ -5,7 +5,6 @@ let dragSrcIndex = null;
 const paletteList = document.getElementById('paletteList');
 const palettePanel = document.querySelector('.palette .list');
 const workspace = document.getElementById('workspace');
-workspace.style.outline = '2px dashed rgba(255,255,255,0.04)';
 const sequenceString = document.getElementById('sequenceString');
 const compact = document.getElementById('compact');
 const countsDiv = document.getElementById('counts');
@@ -50,7 +49,7 @@ function renderWorkspace(){
     updateCompactDisplay();
 }
 
-function getDragAfterElement(container, x, y) {
+function getDragAfterElement(container, y) {
   const draggableElements = [...container.querySelectorAll('.token:not(.dragging)')];
   return draggableElements.reduce((closest, child) => {
     const box = child.getBoundingClientRect();
@@ -60,7 +59,7 @@ function getDragAfterElement(container, x, y) {
     } else {
       return closest;
     }
-  }, { offset: Number.NEGATIVE_INFINITY }).element;
+  })
 }
 
 function getDragAfterElement(container, x) {
@@ -73,7 +72,7 @@ function getDragAfterElement(container, x) {
     } else {
       return closest;
     }
-  }, { offset: Number.NEGATIVE_INFINITY }).element;
+  })
 }
 
 workspace.addEventListener('dragstart', e => {
@@ -230,3 +229,7 @@ function updateCompactDisplay(){
 renderPalette(); renderWorkspace();
 
 document.body.addEventListener('dragover', e=>e.preventDefault());
+
+addEventListener("DOMContentLoaded", () => { 
+    workspace.style.outline = '2px dashed rgba(255,255,255,0.04)';
+})
