@@ -38,9 +38,10 @@ tbody {
 }
 
 tr {
-    /* help */
     justify-content: center;
     align-items: center;
+    gap: 8%;
+    padding: 3%;
 }
 
 td {
@@ -48,9 +49,8 @@ td {
     height: fit-content;
     background-color: rgb(26, 26, 26);
     color: white;
-    padding: 5vw 5vw 5vw 5vw;
-    border-radius: 20%;
-    margin: 4%;
+    padding: 5vw 10vw 5vw 10vw;
+    border-radius: 20px;
     box-shadow: grey 0px 5px 3px 0px;
     user-select: none;
 }

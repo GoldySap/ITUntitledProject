@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+  <style>
+    body {
+      background-color: black;
+      color: #0f0;
+      font-family: monospace;
+      padding: 2rem;
+    }
+
+    h2 {
+      text-align: center;
+    }
+
+    #project-list {
+      list-style: none;
+      padding: 0;
+      margin: 1rem 0;
+    }
+
+    .project {
+      padding: 0.5rem 1rem;
+      margin-bottom: 0.5rem;
+      background-color: #111;
+      cursor: pointer;
+      border: 1px solid #0f0;
+      transition: background 0.2s, transform 0.1s;
+    }
+
+    .project:hover:not(.locked),
+    .project.active:not(.locked) {
+      background-color: #0f0;
+      color: black;
+      transform: scale(1.02);
+    }
+
+    .project.locked {
+      color: #555;
+      border-color: #333;
+      cursor: not-allowed;
+      background-color: #222;
+    }
+  </style>
+</head>
+<body>
+  <div id="project-screen">
+    <h2>Project Archive</h2>
+    <ul id="project-list">
+      <li class="project active" data-id="proj1">Project: Eden Interface</li>
+      <li class="project" data-id="proj2">Project: Spectral Link</li>
+      <li class="project locked" data-id="proj3">Project: Red Memory [LOCKED]</li>
+      <li class="project" data-id="proj4">Project: Paradox Core</li>
+    </ul>
+  </div>
+
+  <script>
+    const projectList = document.querySelectorAll(".project");
+    let currentIndex = 0;
+
+    updateActiveItem();
+
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "ArrowDown") {
+        changeSelection(1);
+      } else if (e.key === "ArrowUp") {
+        changeSelection(-1);
+      } else if (e.key === "Enter") {
+        const current = projectList[currentIndex];
+        if (!current.classList.contains("locked")) {
+          openTerminal(current.dataset.id);
+        }
+      }
+    });
+
+    projectList.forEach((item, index) => {
+      item.addEventListener("mouseover", () => {
+        currentIndex = index;
+        updateActiveItem();
+      });
+      item.addEventListener("click", () => {
+        if (!item.classList.contains("locked")) {
+          openTerminal(item.dataset.id);
+        }
+      });
+    });
+
+    function changeSelection(direction) {
+      const total = projectList.length;
+      let nextIndex = currentIndex;
+      do {
+        nextIndex = (nextIndex + direction + total) % total;
+      } while (projectList[nextIndex].classList.contains("locked") && nextIndex !== currentIndex);
+
+      currentIndex = nextIndex;
+      updateActiveItem();
+    }
+
+    function updateActiveItem() {
+      projectList.forEach((el) => el.classList.remove("active"));
+      projectList[currentIndex].classList.add("active");
+    }
+
+    function openTerminal(projectId) {
+      // Here you'd load the terminal or transition to the project screen
+    }
+
+    // Example: Unlock Project 3 after 5 seconds
+    setTimeout(() => {
+      const locked = document.querySelector('[data-id="proj3"]');
+      locked.classList.remove("locked");
+      locked.textContent = "Project: Red Memory";
+    }, 5000);
+  </script>
+</body>
+</html>

@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VIREN Terminal</title>
+    <link rel="stylesheet" href="../css/index.css">
+    <link rel="stylesheet" href="../css/screen.css">
+    <link rel="stylesheet" href="../css/project.css">
+</head>
+<body>
+<!-- SCREEN EFFECTS -->
+<div class="screeneffects">
+    <div id="interlaced"></div>  
+    <div id="glare"></div>
+</div>
+
+<!-- LOGIN SCREEN -->
+<div id="login-screen" class="screen visible login-screen">
+    <pre id="text"></pre>
+    <h2>VIREN Terminal Login</h2>
+    <input type="text" id="username" placeholder="Username" autofocus autocomplete="off">
+    <input type="password" id="password" placeholder="Password" autofocus autocomplete="off">
+    <button onclick="login()">Login</button>
+</div>
+
+<!-- LOADING SCREEN -->
+<div id="loading-screen" class="">
+    <div id="loading-text"></div>
+</div>
+
+<!-- MAIN TERMINAL UI -->
+<div id="terminal-ui">
+    <div id="header">
+        <h2 style="font-size: xx-large;">VIREN Terminal Prototype v1.4</h2>
+    </div>
+    <div id="container" class="visible">
+        <div id="terminal">Welcome to VIREN Terminal v1.0</div>
+        </div>
+        <div id="input-area">
+            <span>></span>
+            <input type="text" id="command-input" autocomplete="off"/>
+        </div>
+    </div>
+</div>
+<script src="../JS/index.js"></script>
+<script src="../JS/project.js"></script>
+</body>
+</html>

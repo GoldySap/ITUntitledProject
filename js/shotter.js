@@ -178,6 +178,7 @@ class Enemy {
         this.y = y;
         this.dx = dx;
         this.radius = radius;
+        this.color = "#00ff00";
         this.health = 3;
     }
 
@@ -189,8 +190,18 @@ class Enemy {
     draw() {
         c.beginPath();
         c.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
-        c.fillStyle = "#00ff00";
+        c.fillStyle = this.color;
         c.fill();
+    }
+    
+    die() {
+        const size = (1 - this.life / this.maxLife) * 20;
+        c.globalAlpha = this.life / this.maxLife;
+        c.fillStyle = this.color;
+        c.beginPath();
+        c.arc(this.x, this.y, size, 0, Math.PI * 2);
+        c.fill();
+        c.globalAlpha = 1;
     }
 }
 
@@ -261,7 +272,7 @@ const upgrades = [
     {
         name: "Increase Damage",
         level: 0,
-        max: 5,
+        max: 20,
         effect: () => (can.damage += 1),
     },
     {
@@ -305,7 +316,7 @@ function applyUpgrade(upgrade) {
 }
 
 function drawUpgrades() {
-    c.fillStyle = "rgba(0,0,0,0.7)";
+    c.fillStyle = "rgba(0, 0, 0, 0.2)";
     c.fillRect(0, 0, canvas.width, canvas.height);
 
     c.fillStyle = "white";
@@ -349,6 +360,18 @@ function drawUpgrades() {
     };
 }
 
+function lc(hexColor, factor) {
+  hexColor = hexColor.startsWith('#') ? hexColor.slice(1) : hexColor;
+  let r = parseInt(hexColor.substring(0, 2), 16);
+  let g = parseInt(hexColor.substring(2, 4), 16);
+  let b = parseInt(hexColor.substring(4, 6), 16);
+  r = Math.min(255, r + Math.round((255 - r) * factor));
+  g = Math.min(255, g + Math.round((255 - g) * factor));
+  b = Math.min(255, b + Math.round((255 - b) * factor));
+  const toHex = (c) => ('0' + c.toString(16)).slice(-2);
+  return `#${toHex(r)}${toHex(g)}${toHex(b)}`;
+}
+
 function animate() {
     requestAnimationFrame(animate);
     c.clearRect(0, 0, innerWidth, innerHeight);
@@ -376,10 +399,12 @@ function animate() {
             const dy = b.y - e.y;
             const dist = Math.hypot(dx, dy);
             if (dist < b.radius + e.radius) {
+                e.color = lc(e.color, (Math.hypot(e.health) / (2 * e.health)) + 0.1);
                 e.health--;
                 bullets.splice(i, 1);
                 if (e.health <= 0) {
                     enemies.splice(j, 1);
+                    e.die();
                     can.kills++;
                     score++;
                     if (can.kills % 5 === 0) {
