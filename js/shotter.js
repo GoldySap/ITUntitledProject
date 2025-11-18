@@ -293,8 +293,8 @@ const upgrades = [
         level: 0,
         max: 5,
         effect: () => {
-            can.dx += 5;
-            can.dy += 5;
+            can.dx += 1;
+            can.dy += 1;
         },
     },
     {
@@ -458,11 +458,11 @@ function animate() {
             enemies.splice(i, 1);
             can.health--;
             if (can.health <= 0) {
+                can.x = defaultX;
+                can.y = defaultY;
                 stopGame();
                 resetUpgrades();
                 enemies.splice(0, myArray.length);
-                can.x = defaultX;
-                can.y = defaultY;
             }
         }
         if (e.x < -50) enemies.splice(i, 1);
