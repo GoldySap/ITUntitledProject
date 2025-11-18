@@ -90,64 +90,59 @@ function runCommand(cmd) {
     const command = cmd.toLowerCase().trim();
 
     switch (true) {
-    case (command == "help"):
-            print("Commands: help, auth 1, auth 2, simulate, check, clear, exit");
-    break;
-    case (command == "auth 1"):
-        if (clearanceLevel < 1) {
-            clearanceLevel = 1;
-            print("[AUTHORIZED] Clearance level 1 granted.");
-            updateClearanceUI();
-        } else {
-            print("[INFO] Already level 1 or higher.");
-        }
-    break;
-    case (command == "auth 2"):
-        if (clearanceLevel >= 1 && clearanceLevel < 2) {
-            clearanceLevel = 2;
-            print("[AUTHORIZED] Clearance level 2 granted. UI lockdown activated.");
-            updateClearanceUI();
-        } else if (clearanceLevel < 1) {
-            print("[ACCESS DENIED] Requires level 1 first.");
-        } else {
-            print("[INFO] Already level 2.");
-        }
-    break;
-    case (command == "simulate"):
-        if (clearanceLevel >= 1) {
-            print("Launching simulation...");
-            alert("Simulation started!");
-        } else {
-            print("[ACCESS DENIED] Requires clearance level 1.");
-        }
-    break;
-    case (command == "check"):
+        case (command == "help"):
+                print("Commands: help, auth 1, auth 2, simulate, check, clear, exit");
+                break;
+        case (command == "auth 1"):
+            if (clearanceLevel < 1) {
+                clearanceLevel = 1;
+                print("[AUTHORIZED] Clearance level 1 granted.");
+                updateClearanceUI();
+            } else {
+                print("[INFO] Already level 1 or higher.");
+            }
+            break;
+        case (command == "auth 2"):
+            if (clearanceLevel >= 1 && clearanceLevel < 2) {
+                clearanceLevel = 2;
+                print("[AUTHORIZED] Clearance level 2 granted. UI lockdown activated.");
+                updateClearanceUI();
+            } else if (clearanceLevel < 1) {
+                print("[ACCESS DENIED] Requires level 1 first.");
+            } else {
+                print("[INFO] Already level 2.");
+            }
+            break;
+        case (command == "simulate"):
+            if (clearanceLevel >= 1) {
+                print("Launching simulation...");
+                alert("Simulation started!");
+            } else {
+                print("[ACCESS DENIED] Requires clearance level 1.");
+            }
+            break;
+        case (command == "check"):
             print("Current clearence level: " + clearanceLevel);
-    break;
-    case (command == "clear"):
-        terminal.textContent = "VIREN Hybrid Terminal v1.0";
-    break;
-    case (command == "exit"):
-        tui.style.display = "none";
-        loadingScreen.style.display = "flex";
-        username.value = '';
-        password.value = '';
-        loadtext = "Exiting secure terminal..."
-        simulateLoading(() => {
-            loadingScreen.style.display = "none";
-            loginScreen.style.display = "flex";
-            clearanceLevel = 0;
-            updateClearanceUI();
-            loadtext = "";
-        });
-    break;
-    case (command == "unlock 2"):
-        proj2 = true;
-        unlocked()
-        updateClearanceUI();
-    break;
-    default:
-        print(`[UNKNOWN COMMAND] '${command}'`);
+            break;
+        case (command == "clear"):
+            terminal.textContent = "VIREN Hybrid Terminal v1.0";
+            break;
+        case (command == "exit"):
+            tui.style.display = "none";
+            loadingScreen.style.display = "flex";
+            username.value = '';
+            password.value = '';
+            loadtext = "Exiting secure terminal..."
+            simulateLoading(() => {
+                loadingScreen.style.display = "none";
+                loginScreen.style.display = "flex";
+                clearanceLevel = 0;
+                updateClearanceUI();
+                loadtext = "";
+            });
+            break;
+        default:
+            print(`[UNKNOWN COMMAND] '${command}'`);
     }
 }
 

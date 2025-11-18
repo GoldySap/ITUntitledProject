@@ -98,7 +98,7 @@ button {
     text-align: center;
 }
 
-#header, #input-area, #sidebar, #container {
+#header, #input-area, #container {
     display: flex;
 }
 
@@ -130,35 +130,12 @@ button {
     outline: none;
 }
 
-#sidebar {
-    width: 200px;
-    padding: 10px;
-    background: var(--black);
-    border-left: 1px solid var(--main);
-}
-
 #container {
     display: flex;
     flex: 1;
 }
 
-button.sidebar-button {
-    display: block;
-    width: 100%;
-    margin-bottom: 5px;
-    padding: 8px;
-    background: #111;
-    border: 1px solid var(--main);
-    font-family: monospace;
-    cursor: pointer;
-}
-
-button.sidebar-button:hover {
-    background: var(--main);
-    color: var(--black);
-}
-
-body, input, button.sidebar-button, #command-input {
+body, input, #command-input {
     color: var(--main);
 }
 
