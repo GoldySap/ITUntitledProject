@@ -5,7 +5,7 @@ canvas.height = window.innerHeight
 
 let c = canvas.getContext('2d');
 
-function Cannon(x, y, dx, dy, radius) {
+function Cannon(x, y, dx, dy, radius, maxHealth, damage, firerate) {
     this.x = x;
     this.y = y;
     this.dx = dx;
@@ -21,13 +21,13 @@ function Cannon(x, y, dx, dy, radius) {
     this.recoilRecovery = 0.3;
 
     this.isFiring = false;
-    this.fireRate = 150;
+    this.fireRate = firerate;
     this.lastShot = 0;
 
-    this.maxHealth = 5;
+    this.maxHealth = maxHealth;
     this.health = this.maxHealth;
 
-    this.damage = 1;
+    this.damage = damage;
     this.level = 1;
     this.kills = 0;
 
@@ -83,8 +83,10 @@ function Cannon(x, y, dx, dy, radius) {
     this.fire = function() {
         const now = Date.now();
         if (now - this.lastShot < this.fireRate) {
-            this.recoilOffset = 0;
+            this.recoilOffset += 1;
             return;
+        } else {
+           this.recoilOffset = 0; 
         }
         this.lastShot = now;
         const tipX = this.x + Math.cos(this.angle) * this.barrelLength;
@@ -205,7 +207,14 @@ class Enemy {
     }
 }
 
-let can = new Cannon(200, 200, 4, 4, 30);
+const defaultX = 200;
+const defaultDx = 4;
+const defaultY = 200;
+const defaultDy = 4;
+const defaultMaxHealth = 5;
+const defaultDamage = 1;
+const defaultFireRate = 150;
+let can = new Cannon(defaultX, defaultY, defaultDx, defaultDy, 30, defaultMaxHealth, defaultDamage, defaultFireRate);
 let xpos = 0;
 let ypos = 0;
 let bullets = [];
@@ -216,12 +225,6 @@ let gameRunning = false;
 let showUpgrades = false;
 let enemySpawner;
 let score = 0;
-
-setInterval(() => {
-  enemies.push(
-    new Enemy(innerWidth + 50, Math.random() * innerHeight, 2, 25)
-  );
-}, 2000);
 
 document.addEventListener('mousemove', (event) => {
     const dx = event.clientX - can.x;
@@ -253,9 +256,10 @@ function startGame() {
     flashes = [];
     can.kills = 0;
     can.level = 1;
-
     enemySpawner = setInterval(() => {
-        enemies.push(new Enemy(innerWidth + 50, Math.random() * innerHeight, 25, 2));
+        enemies.push(
+            new Enemy(innerWidth + 50, Math.random() * innerHeight, 2, 25)
+        );
     }, 2000);
 }
 
@@ -265,14 +269,17 @@ function stopGame() {
 }
 
 function toggleGame() {
-    if (gameRunning) stopGame();
-    else startGame();
+    if (gameRunning) {
+        stopGame();
+    } else {
+        startGame();
+    }
 }
 const upgrades = [
     {
         name: "Increase Damage",
         level: 0,
-        max: 20,
+        max: 3,
         effect: () => (can.damage += 1),
     },
     {
@@ -312,6 +319,17 @@ function applyUpgrade(upgrade) {
         upgrade.effect();
         showUpgrades = false;
         gameRunning = true;
+    }
+}
+
+function resetUpgrades() {
+    can.dx = defaultDx;
+    can.dy = defaultDy;
+    can.maxHealth = defaultMaxHealth;
+    can.damage = defaultDamage;
+    can.fireRate = defaultFireRate;
+    for (let i = upgrades.length - 1; i > 0; i--) {
+        upgrades[i].level = 0;
     }
 }
 
@@ -400,7 +418,7 @@ function animate() {
             const dist = Math.hypot(dx, dy);
             if (dist < b.radius + e.radius) {
                 e.color = lc(e.color, (Math.hypot(e.health) / (2 * e.health)) + 0.1);
-                e.health--;
+                e.health -= can.damage;
                 bullets.splice(i, 1);
                 if (e.health <= 0) {
                     enemies.splice(j, 1);
@@ -437,9 +455,15 @@ function animate() {
         const dy = e.y - can.y;
         const dist = Math.hypot(dx, dy);
         if (dist < e.radius + can.radius) {
-        enemies.splice(i, 1);
-        can.health--;
-        if (can.health <= 0) stopGame();
+            enemies.splice(i, 1);
+            can.health--;
+            if (can.health <= 0) {
+                stopGame();
+                resetUpgrades();
+                enemies.splice(0, myArray.length);
+                can.x = defaultX;
+                can.y = defaultY;
+            }
         }
         if (e.x < -50) enemies.splice(i, 1);
     });
