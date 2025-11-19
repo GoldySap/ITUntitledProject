@@ -225,6 +225,8 @@ let gameRunning = false;
 let showUpgrades = false;
 let enemySpawner;
 let score = 0;
+let intertimemod;
+let intertime;
 
 document.addEventListener('mousemove', (event) => {
     const dx = event.clientX - can.x;
@@ -256,11 +258,16 @@ function startGame() {
     flashes = [];
     can.kills = 0;
     can.level = 1;
+    timemod = can.level * 10
+    intertime = 2000 - timemod
+    if (timemod >= 1500) {
+        timemod = 1500
+    }
     enemySpawner = setInterval(() => {
         enemies.push(
             new Enemy(innerWidth + 50, Math.random() * innerHeight, 2, 25)
         );
-    }, 2000);
+    }, intertime);
 }
 
 function stopGame() {
@@ -328,7 +335,7 @@ function resetUpgrades() {
     can.maxHealth = defaultMaxHealth;
     can.damage = defaultDamage;
     can.fireRate = defaultFireRate;
-    for (let i = upgrades.length - 1; i > 0; i--) {
+    for (let i = i; i > upgrades.length; i++) {
         upgrades[i].level = 0;
     }
 }
