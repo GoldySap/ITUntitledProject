@@ -5,7 +5,7 @@
 const MAP = [
   [1,1,1,1,1,1,1,1,1,1],
   [1,0,0,0,0,0,0,0,0,1],
-  [1,1,1,1,1,2,1,1,1,1],
+  [1,1,1,1,2,2,1,1,1,1],
   [1,0,0,0,0,0,0,0,0,1],
   [1,0,0,0,0,0,0,0,0,1],
   [1,0,0,0,0,0,0,0,0,1],
@@ -137,7 +137,7 @@ function castRays() {
       let hscale = d ? d.height : 1;
       let doorLineHeight = lineHeight * hscale;
       const shade = Math.max(30, 190 - perpDist*30) | 0;
-      ctx.fillStyle = `rgb(${shade/1.2|0},${shade/1.6|0},${shade/3|0})`; // brownish
+      ctx.fillStyle = `rgb(${shade/1.2|0},${shade/1.6|0},${shade/3|0})`;
       ctx.fillRect(col, (H - doorLineHeight)/2, 1, doorLineHeight);
     }
   }
@@ -214,74 +214,74 @@ function checkPickups() {
 }
 
 function unlockAllDoors() {
-  for (let key in doors) {
-    doors[key].open = true;
-  }
-  showMsg('All keys collected. doors opening!', 1400);
+    for (let key in doors) {
+        doors[key].open = true;
+    }
+    showMsg('All keys collected. doors opening!', 1400);
 }
 
 function animateDoors(dt) {
-  for (let key in doors) {
-    const d = doors[key];
-    if (d.open && d.height > 0) {
-      d.height -= dt * 0.7;
-      if (d.height < 0) d.height = 0;
-      if (d.height = 0) {
-        const [mx,my] = key.split(',').map(Number);
-        MAP[my][mx] = 0;
-      }
+    for (let key in doors) {
+        const d = doors[key];
+        if (d.open && d.height > 0) {
+        d.height -= dt * 0.7;
+        if (d.height < 0) d.height = 0;
+        if (d.height = 0) {
+            const [mx,my] = key.split(',').map(Number);
+            MAP[my][mx] = 0;
+        }
+        }
     }
-  }
 }
 
 function Move(x, y) {
-  const mx = Math.floor(x);
-  const my = Math.floor(y);
-  if (mx < 0 || my < 0 || my >= MAP.length || mx >= MAP[0].length) return false;
-  const tile = MAP[my][mx];
-  if (tile === 0) return true;
-  if (tile === 1) return false;
-  if (tile === 2) {
-    const key = `${mx},${my}`;
-    const d = doors[key];
-    if (d && d.height <= 0.2) return true;
-    showMsg('Door locked. Find all keys!', 900);
+    const mx = Math.floor(x);
+    const my = Math.floor(y);
+    if (mx < 0 || my < 0 || my >= MAP.length || mx >= MAP[0].length) return false;
+    const tile = MAP[my][mx];
+    if (tile === 0) return true;
+    if (tile === 1) return false;
+    if (tile === 2) {
+        const key = `${mx},${my}`;
+        const d = doors[key];
+        if (d && d.height <= 0.2) return true;
+        showMsg('Door locked. Find all keys!', 900);
+        return false;
+    }
     return false;
-  }
-  return false;
 }
 
 let msgTimeout = null;
 function showMsg(text, ms=1200) {
-  msgEl.textContent = text;
-  if (msgTimeout) clearTimeout(msgTimeout);
-  msgTimeout = setTimeout(()=>{ msgEl.textContent = ''; }, ms);
+    msgEl.textContent = text;
+    if (msgTimeout) clearTimeout(msgTimeout);
+    msgTimeout = setTimeout(()=>{ msgEl.textContent = ''; }, ms);
 }
 
 let last = performance.now();
 
-function update(now) {
-  const dt = Math.min(0.05, (now - last) / 1000);
-  last = now;
-  player.angle += player.turn * rotSpeed * dt;
+function animate(now) {
+    const dt = Math.min(0.05, (now - last) / 1000);
+    last = now;
+    player.angle += player.turn * rotSpeed * dt;
 
-  if (player.vel !== 0) {
-    const step = player.vel * moveSpeed * dt;
-    const nx = player.x + Math.cos(player.angle) * step;
-    const ny = player.y + Math.sin(player.angle) * step;
-    if (Move(nx, player.y)) player.x = nx;
-    if (Move(player.x, ny)) player.y = ny;
-  }
+    if (player.vel !== 0) {
+        const step = player.vel * moveSpeed * dt;
+        const nx = player.x + Math.cos(player.angle) * step;
+        const ny = player.y + Math.sin(player.angle) * step;
+        if (Move(nx, player.y)) player.x = nx;
+        if (Move(player.x, ny)) player.y = ny;
+    }
 
-  checkPickups();
-  animateDoors(dt);
-  castRays();
-  drawSprites(now/1000);
+    checkPickups();
+    animateDoors(dt);
+    castRays();
+    drawSprites(now/1000);
 
-  requestAnimationFrame(update);
+    requestAnimationFrame(animate);
 }
 
-requestAnimationFrame(update);
+requestAnimationFrame(animate);
 
 window.__RC_MAP = MAP;
 window.__RC_DOORS = doors;

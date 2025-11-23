@@ -16,7 +16,7 @@ function renderPalette(){
     btn.className='token token-item';
     btn.draggable=true;
     btn.dataset.label = label;
-    btn.innerHTML = `<strong>${label}</strong> <button class="xbtn" title="Create one in workspace">＋</button>`;
+    btn.innerHTML = `<strong>${label}</strong> <button class="xbtn">＋</button>`;
     btn.querySelector('.xbtn').addEventListener('click', ()=>{
         pushToken(label);
     });

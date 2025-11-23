@@ -1,9 +1,43 @@
 let canvas = document.querySelector('canvas');
 
-canvas.width = window.innerWidth
-canvas.height = window.innerHeight
+canvas.width = window.innerWidth;
+canvas.height = window.innerHeight;
 
 let c = canvas.getContext('2d');
+
+function Castle(x, y, width, height, maxHealth) {
+    this.x = x;
+    this.y = y;
+    this.width = width;
+    this.height = height;
+
+    this.maxHealth = maxHealth;
+    this.health = this.maxHealth;
+
+    this.draw = function() {
+        c.save();
+        c.translate(this.x, this.y);
+
+        c.fillStyle = "#0000ff";
+        c.fillRect(-this.width / 2, -this.height / 2, this.width, this.height);
+        
+        const barWidth = 80;
+        const barHeight = 10;
+
+        c.fillStyle = "#333";
+        c.fillRect(-barWidth / 2, -this.height / 2 - 25, barWidth, barHeight);
+
+        const healthWidth = (this.health / this.maxHealth) * barWidth;
+        c.fillStyle = "#00ff00";
+        c.fillRect(-barWidth / 2, -this.height / 2 - 25, healthWidth, barHeight);
+
+        c.restore();
+    };
+
+    this.update = function() {
+        this.draw();
+    };
+}
 
 function Cannon(x, y, dx, dy, radius, maxHealth, damage, firerate) {
     this.x = x;
@@ -64,21 +98,25 @@ function Cannon(x, y, dx, dy, radius, maxHealth, damage, firerate) {
         const healthWidth = (this.health / this.maxHealth) * barWidth;
         c.fillStyle = "#00ff00";
         c.fillRect(barX, barY, healthWidth, barHeight);
-    }
+    };
 
     this.update = function(xnum, ynum) {
         if (xnum < 0 && !(this.x - this.radius <= 0)) {
             this.x -= this.dx;
-        } else if (xnum > 0 && !(this.y >= innerWidth - this.radius)) {
+        } else if (xnum > 0 && !(this.x >= canvas.width - this.radius)) {
             this.x += this.dx;
         }
         if (ynum < 0 && !(this.y - this.radius <= 0)) {
             this.y -= this.dy;
-        } else if (ynum > 0 && !(this.y >= innerHeight - this.radius)) {
+        } else if (ynum > 0 && !(this.y >= canvas.height - this.radius)) {
             this.y += this.dy;
         }
+        if (this.recoilOffset < 0) {
+            this.recoilOffset += this.recoilRecovery;
+            if (this.recoilOffset > 0) this.recoilOffset = 0;
+        }
         this.draw();
-    }
+    };
 
     this.fire = function() {
         const now = Date.now();
@@ -86,7 +124,7 @@ function Cannon(x, y, dx, dy, radius, maxHealth, damage, firerate) {
             this.recoilOffset += 1;
             return;
         } else {
-           this.recoilOffset = 0; 
+        this.recoilOffset = 0; 
         }
         this.lastShot = now;
         const tipX = this.x + Math.cos(this.angle) * this.barrelLength;
@@ -97,7 +135,7 @@ function Cannon(x, y, dx, dy, radius, maxHealth, damage, firerate) {
             particles.push(new Particle(tipX, tipY, this.angle));
         }
         this.recoilOffset = -this.recoilStrength;
-    }
+    };
 }
 
 function Bullet(x, y, dx, angle) {
@@ -135,7 +173,7 @@ class Particle {
         this.x += Math.cos(this.angle) * this.dx;
         this.y += Math.sin(this.angle) * this.dx;
         this.life--;
-        this.alpha = this.life / 50;
+        this.alpha = Math.max(0, this.life / 50);
 
         if (this.life > 0) this.draw();
     }
@@ -175,17 +213,19 @@ class Flash {
 }
 
 class Enemy {
-    constructor(x, y, dx, radius) {
+    constructor(x, y, dx, angle, radius) {
         this.x = x;
         this.y = y;
         this.dx = dx;
+        this.angle = angle;
         this.radius = radius;
         this.color = "#00ff00";
         this.health = 3;
     }
 
     update() {
-        this.x -= this.dx;
+        this.x += Math.cos(this.angle) * this.dx;
+        this.y += Math.sin(this.angle) * this.dx;
         this.draw();
     }
 
@@ -197,13 +237,9 @@ class Enemy {
     }
     
     die() {
-        const size = (1 - this.life / this.maxLife) * 20;
-        c.globalAlpha = this.life / this.maxLife;
-        c.fillStyle = this.color;
-        c.beginPath();
-        c.arc(this.x, this.y, size, 0, Math.PI * 2);
-        c.fill();
-        c.globalAlpha = 1;
+        for (let i = 0; i < 10; i++) {
+            particles.push(new Particle(this.x, this.y, Math.random() * Math.PI * 2));
+        }
     }
 }
 
@@ -215,6 +251,7 @@ const defaultMaxHealth = 5;
 const defaultDamage = 1;
 const defaultFireRate = 150;
 let can = new Cannon(defaultX, defaultY, defaultDx, defaultDy, 30, defaultMaxHealth, defaultDamage, defaultFireRate);
+let castle = new Castle(canvas.width / 2, canvas.height / 2, 50, 50, 5);
 let xpos = 0;
 let ypos = 0;
 let bullets = [];
@@ -223,10 +260,10 @@ let flashes = [];
 let enemies = [];
 let gameRunning = false;
 let showUpgrades = false;
-let enemySpawner;
+let enemySpawner = null;
 let score = 0;
-let intertimemod;
-let intertime;
+let timemod = can.level * 10;
+let intertime = 1000;
 
 document.addEventListener('mousemove', (event) => {
     const dx = event.clientX - can.x;
@@ -248,6 +285,39 @@ document.addEventListener('keyup', (event) => {
     if (event.key === 'w' || event.key === 's') ypos = 0;
 });
 
+function getAngle(fromX, fromY, toX, toY) {
+    return Math.atan2(toY - fromY, toX - fromX);
+}
+
+function spawnEnemy() {
+
+    let count = Math.min(1 + Math.floor(can.level / 2), 7);
+
+    for (let i = 0; i < count; i++) {
+        const side = Math.floor(Math.random() * 4);
+        let x, y;
+
+        switch (side) {
+            case 0: x = -50; y = Math.random() * canvas.height; break;
+            case 1: x = canvas.width + 50; y = Math.random() * canvas.height; break;
+            case 2: x = Math.random() * canvas.width; y = -50; break;
+            case 3: x = Math.random() * canvas.width; y = canvas.height + 50; break;
+        }
+
+        const angle = getAngle(x, y, castle.x, castle.y);
+
+        const speed = 1 + can.level * 0.1;
+        const health = 3 + Math.floor(can.level / 2);
+
+        let enemy = new Enemy(x, y, speed, angle, 25);
+        enemy.health = health;
+
+        enemies.push(enemy);
+    }
+}
+
+
+
 function startGame() {
     if (gameRunning) return;
     gameRunning = true;
@@ -256,18 +326,12 @@ function startGame() {
     bullets = [];
     particles = [];
     flashes = [];
+    enemies = [];
     can.kills = 0;
-    can.level = 1;
-    timemod = can.level * 10
-    intertime = 2000 - timemod
-    if (timemod >= 1500) {
-        timemod = 1500
-    }
-    enemySpawner = setInterval(() => {
-        enemies.push(
-            new Enemy(innerWidth + 50, Math.random() * innerHeight, 2, 25)
-        );
-    }, intertime);
+    can.level = 0;
+    timemod = can.level * 5;
+    intertime = Math.max(200, 2000 - timemod);
+    enemySpawner = setInterval(spawnEnemy, intertime);
 }
 
 function stopGame() {
@@ -282,18 +346,19 @@ function toggleGame() {
         startGame();
     }
 }
-const upgrades = [
+
+const canUpgrades = [
     {
         name: "Increase Damage",
         level: 0,
         max: 3,
-        effect: () => (can.damage += 1),
+        effect: () => (can.damage += 0.5),
     },
     {
         name: "Faster Fire Rate",
         level: 0,
         max: 5,
-        effect: () => (can.fireRate *= 0.8),
+        effect: () => (can.fireRate *= 0.85),
     },
     {
         name: "Faster movement speed",
@@ -305,15 +370,37 @@ const upgrades = [
         },
     },
     {
-        name: "More Health",
+        name: "More Cannon Health",
         level: 0,
         max: 5,
         effect: () => {
-        can.maxHealth += 1;
-        can.health = can.maxHealth;
+            can.maxHealth += 1;
+            can.health = can.maxHealth;
+        },
+    }
+];
+
+const castleUpgrades = [
+    {
+        name: "More Castle Health",
+        level: 0,
+        max: 5,
+        effect: () => {
+            castle.maxHealth += 2;
+            castle.health = castle.maxHealth;
+        },
+    },
+    {
+        name: "Heal Castle",
+        level: 0,
+        max: 5,
+        effect: () => {
+            castle.health = castle.maxHealth;
         },
     },
 ];
+
+const upgrades = [...canUpgrades, ...castleUpgrades];
 
 function openUpgradeMenu() {
     showUpgrades = true;
@@ -333,11 +420,12 @@ function resetUpgrades() {
     can.dx = defaultDx;
     can.dy = defaultDy;
     can.maxHealth = defaultMaxHealth;
+    can.health = can.maxHealth;
     can.damage = defaultDamage;
     can.fireRate = defaultFireRate;
-    for (let i = i; i > upgrades.length; i++) {
-        upgrades[i].level = 0;
-    }
+    castle.maxHealth = defaultMaxHealth;
+    castle.health = castle.maxHealth;
+    upgrades.forEach(u => u.level = 0);
 }
 
 function drawUpgrades() {
@@ -350,22 +438,24 @@ function drawUpgrades() {
     c.fillText("Choose an Upgrade", canvas.width / 2, 100);
 
     const available = upgrades.filter((u) => u.level < u.max);
-    available.forEach((upgrade, i) => {
-        const x = canvas.width / 2;
-        const y = 200 + i * 100;
-        const width = 300;
-        const height = 60;
+    for (let i = upgrades.length; i > 0; i--) {
+        available.forEach((upgrade, i) => {
+            const x = canvas.width / 2;
+            const y = 200 + i * 100;
+            const width = 300;
+            const height = 60;
 
-        c.fillStyle = "#333";
-        c.fillRect(x - width / 2, y - height / 2, width, height);
+            c.fillStyle = "#333";
+            c.fillRect(x - width / 2, y - height / 2, width, height);
 
-        c.strokeStyle = "#fff";
-        c.strokeRect(x - width / 2, y - height / 2, width, height);
+            c.strokeStyle = "#fff";
+            c.strokeRect(x - width / 2, y - height / 2, width, height);
 
-        c.fillStyle = "#fff";
-        c.font = "20px Arial";
-        c.fillText(`${upgrade.name} (${upgrade.level}/${upgrade.max})`, x, y + 5);
-    });
+            c.fillStyle = "#fff";
+            c.font = "20px Arial";
+            c.fillText(`${upgrade.name} (${upgrade.level}/${upgrade.max})`, x, y + 5);
+        });
+    }
 
     canvas.onclick = (e) => {
         const rect = canvas.getBoundingClientRect();
@@ -373,33 +463,50 @@ function drawUpgrades() {
         const my = e.clientY - rect.top;
         const available = upgrades.filter((u) => u.level < u.max);
         available.forEach((upgrade, i) => {
-        const x = canvas.width / 2;
-        const y = 200 + i * 100;
-        const width = 300;
-        const height = 60;
-        if (mx > x - width / 2 && mx < x + width / 2 && my > y - height / 2 && my < y + height / 2) {
-            applyUpgrade(upgrade);
-            canvas.onclick = null;
-        }
+            const x = canvas.width / 2;
+            const y = 200 + i * 100;
+            const width = 300;
+            const height = 60;
+            if (mx > x - width / 2 && mx < x + width / 2 && my > y - height / 2 && my < y + height / 2) {
+                applyUpgrade(upgrade);
+                canvas.onclick = null;
+            }
         });
     };
 }
 
 function lc(hexColor, factor) {
-  hexColor = hexColor.startsWith('#') ? hexColor.slice(1) : hexColor;
-  let r = parseInt(hexColor.substring(0, 2), 16);
-  let g = parseInt(hexColor.substring(2, 4), 16);
-  let b = parseInt(hexColor.substring(4, 6), 16);
-  r = Math.min(255, r + Math.round((255 - r) * factor));
-  g = Math.min(255, g + Math.round((255 - g) * factor));
-  b = Math.min(255, b + Math.round((255 - b) * factor));
-  const toHex = (c) => ('0' + c.toString(16)).slice(-2);
-  return `#${toHex(r)}${toHex(g)}${toHex(b)}`;
+    hexColor = hexColor.startsWith('#') ? hexColor.slice(1) : hexColor;
+    let r = parseInt(hexColor.substring(0, 2), 16);
+    let g = parseInt(hexColor.substring(2, 4), 16);
+    let b = parseInt(hexColor.substring(4, 6), 16);
+    r = Math.min(255, r + Math.round((255 - r) * factor));
+    g = Math.min(255, g + Math.round((255 - g) * factor));
+    b = Math.min(255, b + Math.round((255 - b) * factor));
+    const toHex = (c) => ('0' + c.toString(16)).slice(-2);
+    return `#${toHex(r)}${toHex(g)}${toHex(b)}`;
+}
+
+function collisionCheck(obj, area, enemies, i) {
+    const dx = e.x - obj.x;
+    const dy = e.y - obj.y;
+    const dist = Math.hypot(dx, dy);
+    if (dist < e.radius + area) {
+        e.die();
+        enemies.splice(i, 1);
+        obj.health--;
+        if (obj.health <= 0) {
+            stopGame();
+            resetUpgrades();
+            enemies.splice(0, enemies.length);
+        }
+    }
 }
 
 function animate() {
     requestAnimationFrame(animate);
-    c.clearRect(0, 0, innerWidth, innerHeight);
+    c.clearRect(0, 0, canvas.width, canvas.height);
+
     if (!gameRunning && !showUpgrades) {
         c.fillStyle = "white";
         c.font = "40px Arial";
@@ -418,6 +525,10 @@ function animate() {
     for (let i = bullets.length - 1; i >= 0; i--) {
         const b = bullets[i];
         b.update();
+        if (b.x < 0 || b.x > canvas.width || b.y < 0 || b.y > canvas.height) {
+            bullets.splice(i, 1);
+            continue;
+        }
         for (let j = enemies.length - 1; j >= 0; j--) {
             const e = enemies[j];
             const dx = b.x - e.x;
@@ -428,8 +539,8 @@ function animate() {
                 e.health -= can.damage;
                 bullets.splice(i, 1);
                 if (e.health <= 0) {
-                    enemies.splice(j, 1);
                     e.die();
+                    enemies.splice(j, 1);
                     can.kills++;
                     score++;
                     if (can.kills % 5 === 0) {
@@ -439,11 +550,9 @@ function animate() {
                 }
                 break;
             }
-            if (b.x < 0 || b.x > innerWidth || b.y < 0 || b.y > innerHeight) {
-                bullets.splice(i, 1);
-            }
         }
     }
+
     for (let i = particles.length - 1; i >= 0; i--) {
         particles[i].update();
         if (particles[i].life <= 0) particles.splice(i, 1);
@@ -452,28 +561,15 @@ function animate() {
         flashes[i].update();
         if (flashes[i].life <= 0) flashes.splice(i, 1);
     }
-    for (let i = enemies.length - 1; i >= 0; i--) {
-        enemies[i].update();
-        if (enemies[i].x < -50) enemies.splice(i, 1);
-    }
     enemies.forEach((e, i) => {
         e.update();
-        const dx = e.x - can.x;
-        const dy = e.y - can.y;
-        const dist = Math.hypot(dx, dy);
-        if (dist < e.radius + can.radius) {
-            enemies.splice(i, 1);
-            can.health--;
-            if (can.health <= 0) {
-                can.x = defaultX;
-                can.y = defaultY;
-                stopGame();
-                resetUpgrades();
-                enemies.splice(0, myArray.length);
-            }
-        }
-        if (e.x < -50) enemies.splice(i, 1);
+        collisionCheck(can, can.radius, enemies, i)
+        const castleRadius = Math.max(castle.width, castle.height) * 0.5;
+        collisionCheck(castle, castleRadius, enemies, i)
     });
+
+    castle.update();
+
     c.fillStyle = "white";
     c.font = "20px Arial";
     c.fillText(`Score: ${score}`, 80, 40);
