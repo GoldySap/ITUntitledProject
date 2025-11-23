@@ -13,6 +13,7 @@ function Castle(x, y, width, height, maxHealth) {
 
     this.maxHealth = maxHealth;
     this.health = this.maxHealth;
+    this.coin = 0;
 
     this.draw = function() {
         c.save();
@@ -262,14 +263,8 @@ let gameRunning = false;
 let showUpgrades = false;
 let enemySpawner = null;
 let score = 0;
-let timemod = can.level * 10;
-let intertime = 1000;
 
-document.addEventListener('mousemove', (event) => {
-    const dx = event.clientX - can.x;
-    const dy = event.clientY - can.y;
-    can.angle = Math.atan2(dy, dx);
-});
+document.addEventListener('mousemove', (event) => {can.angle = getAngle(can.x, can.y, event.clientX, event.clientY);});
 document.addEventListener("mousedown", () => {can.isFiring = true;});
 document.addEventListener("mouseup", () => {can.isFiring = false;});
 document.addEventListener('keydown', (event) => {
@@ -290,28 +285,21 @@ function getAngle(fromX, fromY, toX, toY) {
 }
 
 function spawnEnemy() {
-
-    let count = Math.min(1 + Math.floor(can.level / 2), 7);
-
+    let count = Math.min(1 + Math.floor(can.level / 2), 3);
     for (let i = 0; i < count; i++) {
         const side = Math.floor(Math.random() * 4);
         let x, y;
-
         switch (side) {
             case 0: x = -50; y = Math.random() * canvas.height; break;
             case 1: x = canvas.width + 50; y = Math.random() * canvas.height; break;
             case 2: x = Math.random() * canvas.width; y = -50; break;
             case 3: x = Math.random() * canvas.width; y = canvas.height + 50; break;
         }
-
         const angle = getAngle(x, y, castle.x, castle.y);
-
         const speed = 1 + can.level * 0.1;
         const health = 3 + Math.floor(can.level / 2);
-
         let enemy = new Enemy(x, y, speed, angle, 30);
         enemy.health = health;
-
         enemies.push(enemy);
     }
 }
@@ -329,8 +317,8 @@ function startGame() {
     enemies = [];
     can.kills = 0;
     can.level = 0;
-    timemod = can.level * 5;
-    intertime = Math.max(200, 2000 - timemod);
+    let timemod = can.level * 10;
+    let intertime = Math.max(200, 2000 - timemod);
     enemySpawner = setInterval(spawnEnemy, intertime);
 }
 
@@ -387,14 +375,6 @@ const castleUpgrades = [
         max: 5,
         effect: () => {
             castle.maxHealth += 2;
-            castle.health = castle.maxHealth;
-        },
-    },
-    {
-        name: "Heal Castle",
-        level: 0,
-        max: 5,
-        effect: () => {
             castle.health = castle.maxHealth;
         },
     },
@@ -487,7 +467,7 @@ function lc(hexColor, factor) {
     return `#${toHex(r)}${toHex(g)}${toHex(b)}`;
 }
 
-function collisionCheck(obj, area, enemies, i) {
+function collisionCheck(obj, area, enemies, e, i) {
     const dx = e.x - obj.x;
     const dy = e.y - obj.y;
     const dist = Math.hypot(dx, dy);
@@ -563,9 +543,9 @@ function animate() {
     }
     enemies.forEach((e, i) => {
         e.update();
-        collisionCheck(can, can.radius, enemies, i)
+        collisionCheck(can, can.radius, enemies, e, i)
         const castleRadius = Math.max(castle.width, castle.height) * 0.5;
-        collisionCheck(castle, castleRadius, enemies, i)
+        collisionCheck(castle, castleRadius, enemies, e, i)
     });
 
     castle.update();
