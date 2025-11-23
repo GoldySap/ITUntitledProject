@@ -309,7 +309,7 @@ function spawnEnemy() {
         const speed = 1 + can.level * 0.1;
         const health = 3 + Math.floor(can.level / 2);
 
-        let enemy = new Enemy(x, y, speed, angle, 25);
+        let enemy = new Enemy(x, y, speed, angle, 30);
         enemy.health = health;
 
         enemies.push(enemy);
