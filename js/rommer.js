@@ -44,7 +44,7 @@ const rotSpeed = 2.8;
 })();
 
 
-function spawnKeyInEmptyTile() {
+function spawnKey() {
   let tries = 0;
   while (tries < 200) {
     const x = Math.random() * cols;
@@ -65,7 +65,7 @@ function spawnKeyInEmptyTile() {
   return { x: player.x+1, y: player.y, picked:false, anim:0 };
 }
 
-let items = [spawnKeyInEmptyTile(), spawnKeyInEmptyTile(), spawnKeyInEmptyTile()];
+let items = [spawnKey(), spawnKey(), spawnKey()];
 let keysCollected = 0;
 
 document.addEventListener("keydown", e => {

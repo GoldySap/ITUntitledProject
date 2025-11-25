@@ -263,8 +263,15 @@ let gameRunning = false;
 let showUpgrades = false;
 let enemySpawner = null;
 let score = 0;
+let mouseX = 0;
+let mouseY = 0;
 
-document.addEventListener('mousemove', (event) => {can.angle = getAngle(can.x, can.y, event.clientX, event.clientY);});
+document.addEventListener('mousemove', (event) => {
+    const rect = canvas.getBoundingClientRect();
+    mouseX = event.clientX - rect.left;
+    mouseY = event.clientY - rect.top;
+    can.angle = getAngle(can.x, can.y, event.clientX, event.clientY);
+});
 document.addEventListener("mousedown", () => {can.isFiring = true;});
 document.addEventListener("mouseup", () => {can.isFiring = false;});
 document.addEventListener('keydown', (event) => {
@@ -304,8 +311,6 @@ function spawnEnemy() {
     }
 }
 
-
-
 function startGame() {
     if (gameRunning) return;
     gameRunning = true;
@@ -337,9 +342,18 @@ function toggleGame() {
 
 const canUpgrades = [
     {
+        name: "More Cannon Health",
+        level: 0,
+        max: 5,
+        effect: () => {
+            can.maxHealth += 1;
+            can.health = can.maxHealth;
+        },
+    },
+    {
         name: "Increase Damage",
         level: 0,
-        max: 3,
+        max: 0,
         effect: () => (can.damage += 0.5),
     },
     {
@@ -357,24 +371,23 @@ const canUpgrades = [
             can.dy += 1;
         },
     },
-    {
-        name: "More Cannon Health",
-        level: 0,
-        max: 5,
-        effect: () => {
-            can.maxHealth += 1;
-            can.health = can.maxHealth;
-        },
-    }
 ];
 
 const castleUpgrades = [
     {
-        name: "More Castle Health",
+        name: "Increase Castle Health",
         level: 0,
         max: 5,
         effect: () => {
-            castle.maxHealth += 2;
+            castle.maxHealth += 1;
+            castle.health = castle.maxHealth;
+        },
+    },
+    {
+        name: "Heal Castle",
+        level: 0,
+        max: 0,
+        effect: () => {
             castle.health = castle.maxHealth;
         },
     },
@@ -409,51 +422,86 @@ function resetUpgrades() {
 }
 
 function drawUpgrades() {
-    c.fillStyle = "rgba(0, 0, 0, 0.2)";
+    c.fillStyle = "rgba(0, 0, 0, 0.5)";
     c.fillRect(0, 0, canvas.width, canvas.height);
 
     c.fillStyle = "white";
-    c.font = "30px Arial";
+    c.font = "48px Arial";
     c.textAlign = "center";
-    c.fillText("Choose an Upgrade", canvas.width / 2, 100);
+    c.fillText("Choose an Upgrade", canvas.width / 2, 120);
 
-    const available = upgrades.filter((u) => u.level < u.max);
-    for (let i = upgrades.length; i > 0; i--) {
-        available.forEach((upgrade, i) => {
-            const x = canvas.width / 2;
-            const y = 200 + i * 100;
-            const width = 300;
-            const height = 60;
+    upgrades.forEach((upgrade, i) => {
+        const x = canvas.width / 2;
+        const y = 220 + i * 90;
+        const width = 450;
+        const height = 70;
 
-            c.fillStyle = "#333";
-            c.fillRect(x - width / 2, y - height / 2, width, height);
+        const rect = canvas.getBoundingClientRect();
+        const mx = mouseX;
+        const my = mouseY;
 
-            c.strokeStyle = "#fff";
-            c.strokeRect(x - width / 2, y - height / 2, width, height);
+        const hovering =
+            mx > x - width / 2 &&
+            mx < x + width / 2 &&
+            my > y - height / 2 &&
+            my < y + height / 2;
 
-            c.fillStyle = "#fff";
-            c.font = "20px Arial";
-            c.fillText(`${upgrade.name} (${upgrade.level}/${upgrade.max})`, x, y + 5);
-        });
-    }
+        c.fillStyle = hovering
+            ? "rgba(255,255,255,0.2)"
+            : "rgba(255,255,255,0.1)";
+
+        c.strokeStyle = hovering ? "#fff" : "#aaa";
+        c.lineWidth = 2;
+
+        c.beginPath();
+        c.roundRect(x - width / 2, y - height / 2, width, height, 15);
+        c.fill();
+        c.stroke();
+
+        let displayText = upgrade.name + " ";
+
+        if (upgrade.max === 0) {
+            displayText += `(${upgrade.level})`;
+        } else if (upgrade.level >= upgrade.max) {
+            displayText += `(MAX)`;
+        } else {
+            displayText += `(${upgrade.level}/${upgrade.max})`;
+        }
+        c.fillStyle = "white";
+        c.font = "24px Arial";
+        c.fillText(displayText, x, y + 8);
+    });
 
     canvas.onclick = (e) => {
         const rect = canvas.getBoundingClientRect();
         const mx = e.clientX - rect.left;
         const my = e.clientY - rect.top;
-        const available = upgrades.filter((u) => u.level < u.max);
-        available.forEach((upgrade, i) => {
+
+        upgrades.forEach((upgrade, i) => {
             const x = canvas.width / 2;
-            const y = 200 + i * 100;
-            const width = 300;
-            const height = 60;
-            if (mx > x - width / 2 && mx < x + width / 2 && my > y - height / 2 && my < y + height / 2) {
-                applyUpgrade(upgrade);
-                canvas.onclick = null;
+            const y = 220 + i * 90;
+            const width = 450;
+            const height = 70;
+
+            const inside =
+                mx > x - width / 2 &&
+                mx < x + width / 2 &&
+                my > y - height / 2 &&
+                my < y + height / 2;
+
+            if (!inside) return;
+            if (upgrade.max === 0 || upgrade.level < upgrade.max) {
+                upgrade.level++;
+                upgrade.effect();
             }
+
+            showUpgrades = false;
+            gameRunning = true;
+            canvas.onclick = null;
         });
     };
 }
+
 
 function lc(hexColor, factor) {
     hexColor = hexColor.startsWith('#') ? hexColor.slice(1) : hexColor;
@@ -533,14 +581,14 @@ function animate() {
         }
     }
 
-    for (let i = particles.length - 1; i >= 0; i--) {
-        particles[i].update();
-        if (particles[i].life <= 0) particles.splice(i, 1);
-    }
-    for (let i = flashes.length - 1; i >= 0; i--) {
-        flashes[i].update();
-        if (flashes[i].life <= 0) flashes.splice(i, 1);
-    }
+    particles.forEach((p, i) => {
+        p.update();
+        if (p.life <= 0) particles.splice(i, 1);
+    });
+    flashes.forEach((f, i) => {
+        f.update();
+        if (f.life <= 0) flashes.splice(i, 1);
+    });
     enemies.forEach((e, i) => {
         e.update();
         collisionCheck(can, can.radius, enemies, e, i)
