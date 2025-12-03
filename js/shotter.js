@@ -322,14 +322,14 @@ function startGame() {
     enemies = [];
     can.kills = 0;
     can.level = 0;
-    let timemod = can.level * 10;
-    let intertime = Math.max(200, 2000 - timemod);
-    enemySpawner = setInterval(spawnEnemy, intertime);
+    if (!enemySpawner) {
+        enemySpawner = setInterval(spawnEnemy, 2000);
+    }
 }
 
 function stopGame() {
     gameRunning = false;
-    clearInterval(enemySpawner);
+    if (enemySpawner) clearInterval(enemySpawner);
 }
 
 function toggleGame() {
@@ -349,18 +349,28 @@ const canUpgrades = [
             can.maxHealth += 1;
             can.health = can.maxHealth;
         },
+        default: () => {
+            can.maxHealth = defaultMaxHealth;
+            can.health = can.maxHealth;
+        },
     },
     {
         name: "Increase Damage",
         level: 0,
         max: 0,
         effect: () => (can.damage += 0.5),
+        default: () => {
+                can.damage = defaultDamage;
+        },
     },
     {
         name: "Faster Fire Rate",
         level: 0,
         max: 5,
         effect: () => (can.fireRate *= 0.85),
+        default: () => {
+                can.fireRate = defaultFireRate;
+        },
     },
     {
         name: "Faster movement speed",
@@ -369,6 +379,9 @@ const canUpgrades = [
         effect: () => {
             can.dx += 1;
             can.dy += 1;
+        },
+        default: () => {
+                can.fireRate = defaultFireRate;
         },
     },
 ];
@@ -382,12 +395,19 @@ const castleUpgrades = [
             castle.maxHealth += 1;
             castle.health = castle.maxHealth;
         },
+        defult: () =>{
+            castle.maxHealth = defaultMaxHealth;
+            castle.health = castle.maxHealth;
+        },
     },
     {
         name: "Heal Castle",
         level: 0,
         max: 0,
         effect: () => {
+            castle.health = castle.maxHealth;
+        },
+        defult: () =>{
             castle.health = castle.maxHealth;
         },
     },
@@ -397,7 +417,7 @@ const upgrades = [...canUpgrades, ...castleUpgrades];
 
 function openUpgradeMenu() {
     showUpgrades = true;
-    gameRunning = false;
+    stopGame()
 }
 
 function applyUpgrade(upgrade) {
@@ -412,13 +432,10 @@ function applyUpgrade(upgrade) {
 function resetUpgrades() {
     can.dx = defaultDx;
     can.dy = defaultDy;
-    can.maxHealth = defaultMaxHealth;
-    can.health = can.maxHealth;
-    can.damage = defaultDamage;
-    can.fireRate = defaultFireRate;
-    castle.maxHealth = defaultMaxHealth;
-    castle.health = castle.maxHealth;
-    upgrades.forEach(u => u.level = 0);
+    upgrades.forEach(u => {
+        u.level = 0
+        u.default()
+    });
 }
 
 function drawUpgrades() {
@@ -446,9 +463,9 @@ function drawUpgrades() {
             my > y - height / 2 &&
             my < y + height / 2;
 
-        c.fillStyle = hovering
-            ? "rgba(255,255,255,0.2)"
-            : "rgba(255,255,255,0.1)";
+        c.fillStyle = hovering 
+                    ? "rgba(255,255,255,0.2)"
+                    : "rgba(255,255,255,0.1)";
 
         c.strokeStyle = hovering ? "#fff" : "#aaa";
         c.lineWidth = 2;
@@ -547,7 +564,6 @@ function animate() {
         return;
     }
 
-    can.update(xpos, ypos);
     if (can.isFiring) can.fire();
 
     for (let i = bullets.length - 1; i >= 0; i--) {

@@ -1,24 +1,24 @@
+let canvas = document.querySelector('canvas');
+let c = canvas.getContext('2d');
+
 // 0 = empty
 // 1 = wall
 // 2 = door
 
 const MAP = [
-  [1,1,1,1,1,1,1,1,1,1],
-  [1,0,0,0,0,0,0,0,0,1],
-  [1,1,1,1,2,2,1,1,1,1],
-  [1,0,0,0,0,0,0,0,0,1],
-  [1,0,0,0,0,0,0,0,0,1],
-  [1,0,0,0,0,0,0,0,0,1],
-  [1,1,1,1,1,1,1,1,1,1]
+  [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
+  [1,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,1],
+  [1,1,1,1,2,2,1,1,1,1,0,0,0,0,0,0,0,0,0,1],
+  [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+  [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+  [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+  [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]
 ];
 
 const REQUIRED_KEYS = 3;
-const canvas = document.getElementById('game');
-const ctx = canvas.getContext('2d');
-const hud = document.getElementById('hud');
-const msgEl = document.getElementById('msg');
-const W = canvas.width = 900;
-const H = canvas.height = 540;
+let msg = ''
+const W = canvas.width = window.innerWidth;
+const H = canvas.height = window.innerHeight;
 const rows = MAP.length;
 const cols = MAP[0].length;
 const doors = {};
@@ -26,12 +26,18 @@ const player = {
   x: 5,
   y: 5,
   angle: 0,
-  fov: Math.PI / 2.5,
-  vel: 0,
+  pitch: 0,
+  maxPitch: Math.PI / 4,
+  fov: Math.PI / 2.8,
   turn: 0
 };
+const pitchOffset = player.pitch * (H * 0.9);
 const moveSpeed = 3.2;
 const rotSpeed = 2.8;
+let mouseX = 0;
+let mouseY = 0;
+let moveForward = 0;
+let moveSide = 0;
 
 (function scanMapForDoors(){
   for (let y = 0; y < rows; y++) {
@@ -42,7 +48,6 @@ const rotSpeed = 2.8;
     }
   }
 })();
-
 
 function spawnKey() {
   let tries = 0;
@@ -68,25 +73,44 @@ function spawnKey() {
 let items = [spawnKey(), spawnKey(), spawnKey()];
 let keysCollected = 0;
 
+canvas.addEventListener("click", () => {
+    canvas.requestPointerLock();
+});
+
+document.addEventListener("mousemove", e => {
+    if (document.pointerLockElement === canvas) {
+        const sensitivity = 0.002;
+        player.angle += e.movementX * sensitivity;
+        player.pitch -= e.movementY * sensitivity;
+        player.pitch = Math.max(-player.maxPitch, Math.min(player.maxPitch, player.pitch));
+    }
+});
+
 document.addEventListener("keydown", e => {
-  if (e.key === "ArrowUp") player.vel = 1;
-  if (e.key === "ArrowDown") player.vel = -1;
+  if (e.key === "w") moveForward = 1;
+  if (e.key === "s") moveForward = -1;
+  if (e.key === "a") moveSide = -1;
+  if (e.key === "d") moveSide = 1;
   if (e.key === "ArrowLeft") player.turn = -1;
   if (e.key === "ArrowRight") player.turn = 1;
 });
 
 document.addEventListener("keyup", e => {
-  if (e.key === "ArrowUp" || e.key === "ArrowDown") player.vel = 0;
+  if (e.key === "w" || e.key === "s") moveForward = 0;
+  if (e.key === "a" || e.key === "d") moveSide = 0;
   if (e.key === "ArrowLeft" || e.key === "ArrowRight") player.turn = 0;
 });
 
 let depthBuffer = new Float32Array(W);
 
 function castRays() {
-  ctx.fillStyle = '#87CEEB'; // sky
-  ctx.fillRect(0, 0, W, H/2);
-  ctx.fillStyle = '#444'; // floor
-  ctx.fillRect(0, H/2, W, H/2);
+  // Sky
+  c.fillStyle = '#87CEEB';
+  c.fillRect(0, -H/2 + pitchOffset, W, H);
+
+  // Floor
+  c.fillStyle = '#444';
+  c.fillRect(0, H/2 + pitchOffset, W, H);
 
   for (let col = 0; col < W; col++) {
     const rayAngle = player.angle - player.fov/2 + (col / W) * player.fov;
@@ -129,16 +153,16 @@ function castRays() {
     let lineHeight = (H / (perpDist + 0.0001)) * 0.8;
     if (hitTile === 1) {
       const shade = Math.max(30, 255 - perpDist*35) | 0;
-      ctx.fillStyle = `rgb(${shade},${shade},${shade})`;
-      ctx.fillRect(col, (H - lineHeight)/2, 1, lineHeight);
+      c.fillStyle = `rgb(${shade},${shade},${shade})`;
+      c.fillRect(col, (H - lineHeight)/2 + pitchOffset, 1, lineHeight);
     } else if (hitTile === 2) {
       const key = `${hitX},${hitY}`;
       const d = doors[key];
       let hscale = d ? d.height : 1;
       let doorLineHeight = lineHeight * hscale;
       const shade = Math.max(30, 190 - perpDist*30) | 0;
-      ctx.fillStyle = `rgb(${shade/1.2|0},${shade/1.6|0},${shade/3|0})`;
-      ctx.fillRect(col, (H - doorLineHeight)/2, 1, doorLineHeight);
+      c.fillStyle = `rgb(${shade/1.2|0},${shade/1.6|0},${shade/3|0})`;
+      c.fillRect(col, (H - doorLineHeight)/2, 1, doorLineHeight);
     }
   }
 }
@@ -181,19 +205,19 @@ function drawSprites(time) {
       const bob = Math.sin(s.item.anim + time*3) * 0.12;
       s.item.anim += 0.02;
       size *= 1 + Math.sin(time*3 + s.item.anim) * 0.08;
-      const y = (H/2) - size + bob*30;
+      const y = (H/2) - size + bob*30 + pitchOffset;
       const col = Math.floor(screenX);
       if (col >= 0 && col < W && depthBuffer[col] < s.dist - 0.05) {
         continue;
       }
-      ctx.fillStyle = '#ffdf66';
-      ctx.fillRect(screenX - size/2, y, size, size);
+      c.fillStyle = '#ffdf66';
+      c.fillRect(screenX - size/2, y, size, size);
     } else if (s.type === 'doorMark') {
-      const y = (H/2) - size - 30;
+      const y = (H/2) - size - 30 + pitchOffset;
       const col = Math.floor(screenX);
       if (col >= 0 && col < W && depthBuffer[col] < s.dist - 0.05) continue;
-      ctx.fillStyle = 'rgba(255,80,80,0.95)';
-      ctx.fillRect(screenX - size/6, y, size/3, size/3);
+      c.fillStyle = 'rgba(255,80,80,0.95)';
+      c.fillRect(screenX - size/6, y, size/3, size/3);
     }
   }
 }
@@ -206,7 +230,6 @@ function checkPickups() {
     if (Math.hypot(dx,dy) < 0.55) {
       it.picked = true;
       keysCollected++;
-      hud.textContent = `Keys: ${keysCollected} / ${REQUIRED_KEYS}`;
       showMsg('Picked up a key.', 1100);
       if (keysCollected >= REQUIRED_KEYS) unlockAllDoors();
     }
@@ -234,7 +257,7 @@ function animateDoors(dt) {
     }
 }
 
-function Move(x, y) {
+function collisionCheck(x, y) {
     const mx = Math.floor(x);
     const my = Math.floor(y);
     if (mx < 0 || my < 0 || my >= MAP.length || mx >= MAP[0].length) return false;
@@ -253,9 +276,9 @@ function Move(x, y) {
 
 let msgTimeout = null;
 function showMsg(text, ms=1200) {
-    msgEl.textContent = text;
+    msg = text;
     if (msgTimeout) clearTimeout(msgTimeout);
-    msgTimeout = setTimeout(()=>{ msgEl.textContent = ''; }, ms);
+    msgTimeout = setTimeout(()=>{ msg = ''; }, ms);
 }
 
 let last = performance.now();
@@ -263,20 +286,27 @@ let last = performance.now();
 function animate(now) {
     const dt = Math.min(0.05, (now - last) / 1000);
     last = now;
+   
     player.angle += player.turn * rotSpeed * dt;
-
-    if (player.vel !== 0) {
-        const step = player.vel * moveSpeed * dt;
-        const nx = player.x + Math.cos(player.angle) * step;
-        const ny = player.y + Math.sin(player.angle) * step;
-        if (Move(nx, player.y)) player.x = nx;
-        if (Move(player.x, ny)) player.y = ny;
-    }
+    const speed = moveSpeed * dt;
+    const forwardX = Math.cos(player.angle);
+    const forwardY = Math.sin(player.angle);
+    const sideX = Math.cos(player.angle + Math.PI / 2);
+    const sideY = Math.sin(player.angle + Math.PI / 2);
+    let nx = player.x + (forwardX * moveForward + sideX * moveSide) * speed;
+    let ny = player.y + (forwardY * moveForward + sideY * moveSide) * speed;
+    if (collisionCheck(nx, player.y)) player.x = nx;
+    if (collisionCheck(player.x, ny)) player.y = ny;
 
     checkPickups();
     animateDoors(dt);
     castRays();
     drawSprites(now/1000);
+
+    c.fillStyle = "white";
+    c.font = "20px Arial";
+    c.fillText(`Keys: ${keysCollected} / ${REQUIRED_KEYS}`, 60, 60);
+    c.fillText(`${msg}`, canvas.width / 2, canvas.height - 50);
 
     requestAnimationFrame(animate);
 }

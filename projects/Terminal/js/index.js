@@ -14,7 +14,7 @@ let selected = "";
 let loadtext = "";
 let clearanceLevel = 0;
 
-const textEl = document.getElementById("text");
+const Logo = document.getElementById("logo");
 
 const asciiArt = [
     "           -",
@@ -36,11 +36,11 @@ function type() {
     if (line < asciiArt.length) {
     const currentLine = asciiArt[line];
         if (char < currentLine.length) {
-            textEl.textContent += currentLine[char];
+            Logo.textContent += currentLine[char];
             char++;
             setTimeout(type, 15);
         } else {
-            textEl.textContent += "\n";
+            Logo.textContent += "\n";
             line++;
             char = 0;
             setTimeout(type, 150);
