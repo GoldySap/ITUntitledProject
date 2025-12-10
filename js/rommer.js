@@ -4,13 +4,15 @@ let c = canvas.getContext('2d');
 // 0 = empty
 // 1 = wall
 // 2 = door
+// 3 = lever
+// 4 = glass
 
 const MAP = [
   [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
-  [1,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,1],
-  [1,1,1,1,2,2,1,1,1,1,0,0,0,0,0,0,0,0,0,1],
+  [1,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,1],
   [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
-  [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+  [1,0,0,0,0,0,0,0,0,0,4,0,0,0,0,0,0,0,0,1],
+  [1,0,0,0,0,0,0,0,0,0,0,0,0,3,0,0,0,0,0,1],
   [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
   [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]
 ];
@@ -22,28 +24,39 @@ const H = canvas.height = window.innerHeight;
 const rows = MAP.length;
 const cols = MAP[0].length;
 const doors = {};
+const levers = {};
 const player = {
   x: 5,
   y: 5,
   angle: 0,
   pitch: 0,
   maxPitch: Math.PI / 4,
-  fov: Math.PI / 2.8,
+  fov: Math.PI / 2.4,
   turn: 0
 };
-const pitchOffset = player.pitch * (H * 0.9);
-const moveSpeed = 3.2;
+const moveSpeed = 2.8;
 const rotSpeed = 2.8;
 let mouseX = 0;
 let mouseY = 0;
 let moveForward = 0;
 let moveSide = 0;
+let IsInteracting = false;
 
 (function scanMapForDoors(){
   for (let y = 0; y < rows; y++) {
     for (let x = 0; x < cols; x++) {
       if (MAP[y][x] === 2) {
         doors[`${x},${y}`] = { open: false, height: 1 };
+      }
+    }
+  }
+})();
+
+(function scanMapForLevers(){
+  for (let y = 0; y < rows; y++) {
+    for (let x = 0; x < cols; x++) {
+      if (MAP[y][x] === 3) {
+        levers[`${x},${y}`] = { pressed: false };
       }
     }
   }
@@ -61,7 +74,7 @@ function spawnKey() {
         const dx = x + 0.5 - player.x;
         const dy = y + 0.5 - player.y;
         if (Math.hypot(dx,dy) > 1.2) {
-          return { x: x+0.25, y: y+0.25, picked:false, anim: Math.random()*6 };
+          return { x: x, y: y, picked:false, anim: Math.random()*6 };
         }
       }
     }
@@ -79,7 +92,7 @@ canvas.addEventListener("click", () => {
 
 document.addEventListener("mousemove", e => {
     if (document.pointerLockElement === canvas) {
-        const sensitivity = 0.002;
+        const sensitivity = 0.0017;
         player.angle += e.movementX * sensitivity;
         player.pitch -= e.movementY * sensitivity;
         player.pitch = Math.max(-player.maxPitch, Math.min(player.maxPitch, player.pitch));
@@ -87,6 +100,7 @@ document.addEventListener("mousemove", e => {
 });
 
 document.addEventListener("keydown", e => {
+  if (e.key === "e") tryInteract();
   if (e.key === "w") moveForward = 1;
   if (e.key === "s") moveForward = -1;
   if (e.key === "a") moveSide = -1;
@@ -101,14 +115,67 @@ document.addEventListener("keyup", e => {
   if (e.key === "ArrowLeft" || e.key === "ArrowRight") player.turn = 0;
 });
 
-let depthBuffer = new Float32Array(W);
+let depthBuffer = new Float64Array(W);
+
+const TILE_CONFIG = {
+    // Base tile dimensions
+    baseWidth: 1,   // Default tile width
+    baseHeight: 1,  // Default tile height
+    
+    // Positioning offsets
+    offsetX: 0,     // Horizontal offset within tile grid
+    offsetY: 0,     // Vertical offset within tile grid
+    
+    // Scaling and positioning methods
+    setTileSize: function(width, height) {
+        this.baseWidth = width;
+        this.baseHeight = height;
+    },
+    
+    setTileOffset: function(x, y) {
+        this.offsetX = x;
+        this.offsetY = y;
+    }
+};
+
+function collisionCheck(x, y) {
+    const tileWidth = TILE_CONFIG.baseWidth;
+    const tileHeight = TILE_CONFIG.baseHeight;
+    const offsetX = TILE_CONFIG.offsetX;
+    const offsetY = TILE_CONFIG.offsetY;
+
+    // Adjust coordinates with offsets
+    const adjustedX = x - offsetX;
+    const adjustedY = y - offsetY;
+
+    const mx = Math.floor(adjustedX / tileWidth);
+    const my = Math.floor(adjustedY / tileHeight);
+    
+    if (mx < 0 || my < 0 || my >= MAP.length || mx >= MAP[0].length) return false;
+    
+    const tile = MAP[my][mx];
+    
+    if (tile === 0) return true;
+    if (tile === 1) return false;
+    if (tile === 2) {
+        const key = `${mx},${my}`;
+        const d = doors[key];
+        if (d && d.height <= 0.2) return true;
+        showMsg('Door locked. Find all keys!', 900);
+        return false;
+    }
+    if (tile === 3) return false;
+    return false;
+}
 
 function castRays() {
+  const pitchOffset = player.pitch * (H * 0.9);
+
   // Sky
   c.fillStyle = '#87CEEB';
   c.fillRect(0, -H/2 + pitchOffset, W, H);
 
-  // Floor
+  // Floorks
   c.fillStyle = '#444';
   c.fillRect(0, H/2 + pitchOffset, W, H);
 
@@ -120,36 +187,47 @@ function castRays() {
     let dist = 0;
     let hitTile = 0;
     let hitX = 0, hitY = 0;
+
     while (dist < 30) {
-      dist += 0.02;
-      const rx = player.x + cos * dist;
-      const ry = player.y + sin * dist;
-      const mx = Math.floor(rx);
-      const my = Math.floor(ry);
-      if (mx < 0 || my < 0 || my >= MAP.length || mx >= MAP[0].length) {
-        hitTile = 1;
-        hitX = mx; hitY = my;
-        break;
-      }
-      const tile = MAP[my][mx];
-      if (tile === 1) {
-        hitTile = 1;
-        hitX = mx; hitY = my;
-        break;
-      }
-      if (tile === 2) {
-        const key = `${mx},${my}`;
-        const d = doors[key];
-        if (d && d.height > 0.02) {
-          hitTile = 2;
-          hitX = mx; hitY = my;
-          break;
+        dist += 0.02;
+        const rx = player.x + cos * dist;
+        const ry = player.y + sin * dist;
+        const mx = Math.floor(rx);
+        const my = Math.floor(ry);
+        if (mx < 0 || my < 0 || mx >= MAP[0].length || my >= MAP.length) {
+            hitTile = 1;
+            break;
         }
-      }
+        const tile = MAP[my][mx];
+        if (tile === 1) {
+            hitTile = 1;
+            hitX = mx; hitY = my;
+            break;
+        }
+        if (tile === 2) {
+            const d = doors[`${mx},${my}`];
+            if (d && d.height > 0.02) {
+                hitTile = 2;
+                hitX = mx; hitY = my;
+                break;
+            }
+        }
+        if (tile === 3) {
+            const l = levers[`${mx},${my}`];
+            if (l) {
+                hitTile = 3;
+                hitX = mx; hitY = my;
+                break;
+            }
+        }
+        if (tile === 4) {
+            hitTile = 4;
+            hitX = mx; hitY = my;
+            break;
+        }
     }
     const perpDist = dist * Math.cos(rayAngle - player.angle);
     depthBuffer[col] = perpDist;
-
     let lineHeight = (H / (perpDist + 0.0001)) * 0.8;
     if (hitTile === 1) {
       const shade = Math.max(30, 255 - perpDist*35) | 0;
@@ -162,12 +240,29 @@ function castRays() {
       let doorLineHeight = lineHeight * hscale;
       const shade = Math.max(30, 190 - perpDist*30) | 0;
       c.fillStyle = `rgb(${shade/1.2|0},${shade/1.6|0},${shade/3|0})`;
-      c.fillRect(col, (H - doorLineHeight)/2, 1, doorLineHeight);
+      c.fillRect(col, (H - doorLineHeight)/2 + pitchOffset, 1, doorLineHeight);
+    } else if (hitTile === 3) { 
+      const key = `${hitX},${hitY}`; 
+      const lever = levers[key]; 
+      const pressed = lever ? lever.pressed : false; 
+      const color = pressed ? "rgb(180,40,40)" : "rgb(40,180,40)"; 
+      const small = lineHeight * 1; 
+      const y = (H - small) / 2 + pitchOffset; 
+      c.fillStyle = `${color}`;
+      c.fillRect(col, y, 1, lineHeight);
+    } else if (hitTile === 4) {
+      const shade = Math.max(30, 255 - perpDist*35) | 0;
+      const opacity = Math.min(Math.max(0 + (perpDist * 0.25), 0.4), 1);
+      c.fillStyle = `rgba(${shade},${shade},${shade},${opacity})`;
+      c.fillRect(col, (H - lineHeight)/2 + pitchOffset, 1, lineHeight);
     }
   }
 }
 
+let bobbing = 3;
+
 function drawSprites(time) {
+  const pitchOffset = player.pitch * (H * 0.9);
   const sprites = [];
 
   for (let item of items) {
@@ -184,7 +279,7 @@ function drawSprites(time) {
   for (let key in doors) {
     const [mx,my] = key.split(',').map(Number);
     const d = doors[key];
-    if (!d.open && keysCollected >= REQUIRED_KEYS) {
+    if (d.open > 0 && keysCollected >= REQUIRED_KEYS) {
       const cx = mx + 0.5, cy = my + 0.5;
       const dx = cx - player.x;
       const dy = cy - player.y;
@@ -199,28 +294,54 @@ function drawSprites(time) {
 
   for (let s of sprites) {
     const screenX = (s.ang / (player.fov/2)) * (W/2) + (W/2);
-    const baseSize = (1 / Math.max(0.001, s.dist)) * 240;
-    let size = baseSize;
     if (s.type === 'key') {
+      const spriteHeight = (1 / s.dist) * 240;
+      const spriteWidth  = spriteHeight * 0.7;
       const bob = Math.sin(s.item.anim + time*3) * 0.12;
       s.item.anim += 0.02;
-      size *= 1 + Math.sin(time*3 + s.item.anim) * 0.08;
-      const y = (H/2) - size + bob*30 + pitchOffset;
-      const col = Math.floor(screenX);
-      if (col >= 0 && col < W && depthBuffer[col] < s.dist - 0.05) {
-        continue;
+      const y = (H/2) - spriteHeight + bob*30 + pitchOffset;
+      const left = Math.floor(screenX - spriteWidth/2);
+      const right = Math.floor(screenX + spriteWidth/2);
+      for (let x = left; x <= right; x++) {
+          if (x < 0 || x >= W) continue;
+          if (depthBuffer[x] < s.dist) continue;
+          c.fillStyle = '#ffdf66';
+          c.fillRect(x, y, 1, spriteHeight);
       }
-      c.fillStyle = '#ffdf66';
-      c.fillRect(screenX - size/2, y, size, size);
     } else if (s.type === 'doorMark') {
-      const y = (H/2) - size - 30 + pitchOffset;
-      const col = Math.floor(screenX);
-      if (col >= 0 && col < W && depthBuffer[col] < s.dist - 0.05) continue;
-      c.fillStyle = 'rgba(255,80,80,0.95)';
-      c.fillRect(screenX - size/6, y, size/3, size/3);
+      const spriteHeight = (1 / s.dist) * 100;
+      const spriteWidth  = spriteHeight * 1;
+      const bob = Math.sin(bobbing + time*3) * 0.12;
+      bobbing += 0.02;
+      const y = (H/2) - spriteHeight + bob*30 + pitchOffset;
+      const left = Math.floor(screenX - spriteWidth/2);
+      const right = Math.floor(screenX + spriteWidth/2);
+      for (let x = left; x <= right; x++) {
+          if (x < 0 || x >= W) continue;
+          // if (depthBuffer[x] < s.dist) continue;
+          c.fillStyle = 'rgba(255,80,80,0.95)';
+          c.fillRect(x, y, 1, spriteHeight);
+      }
     }
   }
 }
+
+
+function tryInteract() {
+    const reach = 1.2;
+    const tx = player.x + Math.cos(player.angle) * reach;
+    const ty = player.y + Math.sin(player.angle) * reach;
+    const mx = Math.floor(tx);
+    const my = Math.floor(ty);
+    if (MAP[my] && MAP[my][mx] === 3) {
+        const key = `${mx},${my}`;
+        const lever = levers[key];
+        if (!lever) return;
+        lever.pressed = !lever.pressed;
+        showMsg(lever.pressed ? "Lever activated!" : "Lever reset!", 1000);
+    }
+}
+
 
 function checkPickups() {
   for (let it of items) {
@@ -247,13 +368,13 @@ function animateDoors(dt) {
     for (let key in doors) {
         const d = doors[key];
         if (d.open && d.height > 0) {
-        d.height -= dt * 0.7;
-        if (d.height < 0) d.height = 0;
-        if (d.height = 0) {
-            const [mx,my] = key.split(',').map(Number);
-            MAP[my][mx] = 0;
+            d.height -= dt * 0.7;
+            if (d.height < 0) d.height = 0;
         }
-        }
+        if (d.open && d.height === 0) {
+                const [mx,my] = key.split(',').map(Number);
+                MAP[my][mx] = 0;
+            }
     }
 }
 
@@ -271,6 +392,7 @@ function collisionCheck(x, y) {
         showMsg('Door locked. Find all keys!', 900);
         return false;
     }
+    if (tile === 3) return false;
     return false;
 }
 
