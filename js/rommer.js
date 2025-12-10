@@ -46,7 +46,13 @@ let IsInteracting = false;
   for (let y = 0; y < rows; y++) {
     for (let x = 0; x < cols; x++) {
       if (MAP[y][x] === 2) {
-        doors[`${x},${y}`] = { open: false, height: 1 };
+        doors[`${x},${y}`] = { 
+          open: false, 
+          height: 1,
+          condition: { 
+            type: "allKeys"
+          }
+        };;
       }
     }
   }
@@ -86,6 +92,65 @@ function spawnKey() {
 let items = [spawnKey(), spawnKey(), spawnKey()];
 let keysCollected = 0;
 
+function doorCheck(door, pos, context) {
+    const cond = door.condition || { type: "allKeys" };
+    switch (cond.type) {
+        case "allKeys":
+            return context.keysCollected >= context.requiredKeys;
+        case "specificKey":
+            return context.player.inventory?.[cond.keyName] === true;
+        case "lever":
+            return context.levers[cond.leverPos]?.pressed === true;
+        case "keyCount":
+            return (context.player.keyCount?.[cond.keyType] || 0) >= cond.amount;
+        case "totalKeys":
+            return context.keysCollected >= cond.amount;
+        case "custom":
+            return typeof cond.check === "function" 
+                ? cond.check(door, pos, context) 
+                : false;
+        default:
+            return false;
+    }
+}
+
+function doorSet(doors, pos, condition) {
+    if (!doors[pos]) {
+        console.warn("Door not found:", pos);
+        return;
+    }
+    doors[pos].condition = condition;
+}
+
+function doorGet(doors, pos) {
+    return doors[pos]?.condition || null;
+}
+
+function applyDefault(doors, type="allKeys") {
+    for (let pos in doors) {
+        if (!doors[pos].condition) {
+            doors[pos].condition = { type };
+        }
+    }
+}
+
+applyDefault(doors, "allKeys");
+doorSet(doors, "1,1", { 
+    type: "lever",
+    leverPos: "13,4"
+});
+doorSet(doors, "10,1", {
+    type: "totalKeys",
+    amount: 1
+});
+// doorSet(doors, "7,1", {
+//     type: "custom",
+//     doorCheck: (door, pos, ctx) => {
+//         return ctx.keysCollected >= 2 && ctx.levers["13,4"].pressed;
+//     }
+// });
+
+
 canvas.addEventListener("click", () => {
     canvas.requestPointerLock();
 });
@@ -117,57 +182,6 @@ document.addEventListener("keyup", e => {
 
 let depthBuffer = new Float64Array(W);
 
-const TILE_CONFIG = {
-    // Base tile dimensions
-    baseWidth: 1,   // Default tile width
-    baseHeight: 1,  // Default tile height
-    
-    // Positioning offsets
-    offsetX: 0,     // Horizontal offset within tile grid
-    offsetY: 0,     // Vertical offset within tile grid
-    
-    // Scaling and positioning methods
-    setTileSize: function(width, height) {
-        this.baseWidth = width;
-        this.baseHeight = height;
-    },
-    
-    setTileOffset: function(x, y) {
-        this.offsetX = x;
-        this.offsetY = y;
-    }
-};
-
-function collisionCheck(x, y) {
-    const tileWidth = TILE_CONFIG.baseWidth;
-    const tileHeight = TILE_CONFIG.baseHeight;
-    const offsetX = TILE_CONFIG.offsetX;
-    const offsetY = TILE_CONFIG.offsetY;
-
-    // Adjust coordinates with offsets
-    const adjustedX = x - offsetX;
-    const adjustedY = y - offsetY;
-
-    const mx = Math.floor(adjustedX / tileWidth);
-    const my = Math.floor(adjustedY / tileHeight);
-    
-    if (mx < 0 || my < 0 || my >= MAP.length || mx >= MAP[0].length) return false;
-    
-    const tile = MAP[my][mx];
-    
-    if (tile === 0) return true;
-    if (tile === 1) return false;
-    if (tile === 2) {
-        const key = `${mx},${my}`;
-        const d = doors[key];
-        if (d && d.height <= 0.2) return true;
-        showMsg('Door locked. Find all keys!', 900);
-        return false;
-    }
-    if (tile === 3) return false;
-    return false;
-}
-
 function castRays() {
   const pitchOffset = player.pitch * (H * 0.9);
 
@@ -175,7 +189,7 @@ function castRays() {
   c.fillStyle = '#87CEEB';
   c.fillRect(0, -H/2 + pitchOffset, W, H);
 
-  // Floorks
+  // Floor
   c.fillStyle = '#444';
   c.fillRect(0, H/2 + pitchOffset, W, H);
 
@@ -205,10 +219,30 @@ function castRays() {
             break;
         }
         if (tile === 2) {
-            const d = doors[`${mx},${my}`];
+            const key = `${mx},${my}`;
+            const d = doors[key];
             if (d && d.height > 0.02) {
+              hitTile = 2;
+              hitX = mx; hitY = my;
+              break;
+            }
+            const allowed = doorCheck(d, key, {
+                keysCollected,
+                requiredKeys: REQUIRED_KEYS,
+                player,
+                levers
+            });
+            if (allowed) {
+                d.open = true;
                 hitTile = 2;
-                hitX = mx; hitY = my;
+                hitX = mx;
+                hitY = my;
+                break;
+            } else {
+                showMsg('Door locked.', 900);
+                hitTile = 2;
+                hitX = mx;
+                hitY = my;
                 break;
             }
         }
@@ -277,18 +311,34 @@ function drawSprites(time) {
   }
 
   for (let key in doors) {
-    const [mx,my] = key.split(',').map(Number);
-    const d = doors[key];
-    if (d.open > 0 && keysCollected >= REQUIRED_KEYS) {
-      const cx = mx + 0.5, cy = my + 0.5;
-      const dx = cx - player.x;
-      const dy = cy - player.y;
-      const dist = Math.hypot(dx,dy);
-      let ang = Math.atan2(dy,dx) - player.angle;
-      ang = (ang + Math.PI*3) % (Math.PI*2) - Math.PI;
-      if (Math.abs(ang) <= player.fov/2) sprites.push({ type:'doorMark', x:cx, y:cy, dist, ang, doorKey:key });
+    const [mx, my] = key.split(',').map(Number);
+    const door = doors[key];
+    const allowed = doorCheck(door, key, {
+        keysCollected,
+        requiredKeys: REQUIRED_KEYS,
+        player,
+        levers
+    });
+    if (!allowed) continue;
+    const cx = mx + 0.5;
+    const cy = my + 0.5;
+    const dx = cx - player.x;
+    const dy = cy - player.y;
+    const dist = Math.hypot(dx, dy);
+    let ang = Math.atan2(dy, dx) - player.angle;
+    ang = (ang + Math.PI * 3) % (Math.PI * 2) - Math.PI;
+    if (Math.abs(ang) <= player.fov / 2) {
+        sprites.push({
+            type: 'doorMark',
+            x: cx,
+            y: cy,
+            dist,
+            ang,
+            doorKey: key
+        });
     }
-  }
+}
+
 
   sprites.sort((a,b) => b.dist - a.dist);
 
@@ -325,7 +375,6 @@ function drawSprites(time) {
     }
   }
 }
-
 
 function tryInteract() {
     const reach = 1.2;
@@ -383,17 +432,29 @@ function collisionCheck(x, y) {
     const my = Math.floor(y);
     if (mx < 0 || my < 0 || my >= MAP.length || mx >= MAP[0].length) return false;
     const tile = MAP[my][mx];
-    if (tile === 0) return true;
-    if (tile === 1) return false;
-    if (tile === 2) {
+    switch (tile) {
+      case 0: return true;
+      case 1: return false;
+      case 2: 
         const key = `${mx},${my}`;
-        const d = doors[key];
-        if (d && d.height <= 0.2) return true;
-        showMsg('Door locked. Find all keys!', 900);
-        return false;
+        const door = doors[key];
+        const allowed = doorCheck(door, key, {
+            keysCollected,
+            requiredKeys: REQUIRED_KEYS,
+            player,
+            levers
+        });
+        if (allowed) {
+            door.open = true;
+            return true;
+        } else {
+            showMsg('Door locked.', 900);
+            return false;
+        }
+      case 3: return false;
+      case 4: return false;
+      default: return false;
     }
-    if (tile === 3) return false;
-    return false;
 }
 
 let msgTimeout = null;
