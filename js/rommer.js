@@ -391,7 +391,6 @@ function tryInteract() {
     }
 }
 
-
 function checkPickups() {
   for (let it of items) {
     if (it.picked) continue;
@@ -436,8 +435,7 @@ function collisionCheck(x, y) {
       case 0: return true;
       case 1: return false;
       case 2: 
-        const key = `${mx},${my}`;
-        const door = doors[key];
+        const key = `${door.mx},${door.my}`;
         const allowed = doorCheck(door, key, {
             keysCollected,
             requiredKeys: REQUIRED_KEYS,
@@ -445,7 +443,7 @@ function collisionCheck(x, y) {
             levers
         });
         if (allowed) {
-            door.open = true;
+            doors[key].open = true;
             return true;
         } else {
             showMsg('Door locked.', 900);

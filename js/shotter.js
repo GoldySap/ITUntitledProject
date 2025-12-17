@@ -395,7 +395,7 @@ const castleUpgrades = [
             castle.maxHealth += 1;
             castle.health = castle.maxHealth;
         },
-        defult: () =>{
+        default: () =>{
             castle.maxHealth = defaultMaxHealth;
             castle.health = castle.maxHealth;
         },
