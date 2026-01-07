@@ -122,6 +122,8 @@ function runCommand(cmd) {
                 print("[ACCESS DENIED] Requires clearance level 1.");
             }
             break;
+        case "tree" || "files":
+            print("Display tree")
         case "check":
             print("Current clearence level: " + clearanceLevel);
             break;

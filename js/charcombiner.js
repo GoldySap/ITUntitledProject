@@ -171,35 +171,26 @@ document.getElementById('clear').addEventListener('click', ()=>{
     renderWorkspace(); 
 });
 
-document.getElementById('fuseOnce').addEventListener('click', ()=>{ 
-    fuseOnce(); 
+document.getElementById('fuse').addEventListener('click', ()=>{ 
+    fuse(); 
     renderWorkspace(); 
-});
-
-document.getElementById('autoFuse').addEventListener('click', ()=>{
-    let changed=true; let rounds=0;
-    while(changed && rounds < 100){
-    changed = fuseOnce();
-    rounds++;
-    }
-    renderWorkspace();
 });
 
 function isAtomic(tok){ return typeof tok === 'string' && tok.length === 1; }
 
-function fuseOnce(){
+function fuse(){
     const out = [];
     let fused = false;
     for(let i=0;i<sequence.length;i++){
-    const a = sequence[i];
-    const b = sequence[i+1];
-    if(b!==undefined && isAtomic(a) && isAtomic(b) && a !== b){
-        out.push(a + b);
-        i++;
-        fused = true;
-    } else {
-        out.push(a);
-    }
+      const a = sequence[i];
+      const b = sequence[i+1];
+      if(b!==undefined && isAtomic(a) && isAtomic(b) && a !== b){
+          out.push(a + b);
+          i++;
+          fused = true;
+      } else {
+          out.push(a);
+      }
     }
     sequence = out;
     return fused;

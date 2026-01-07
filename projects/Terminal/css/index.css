@@ -55,7 +55,12 @@ input::placeholder {
     z-index: 25;
 }
 
-#login-screen button {
+#login-screen form {
+    display: flex;
+    flex-direction: column;
+}
+
+#login-screen form button {
     background: var(--main);
     filter: brightness(100%);
     border: none;
@@ -78,12 +83,12 @@ input::placeholder {
     margin-bottom: 350px;
 }
 
-#login-screen input {
+#login-screen form input {
     background-color: rgba(0, 0, 0, 0.4);
     margin-top: 10px;
 }
 
-#login-screen input:focus {
+#login-screen form input:focus {
     border-color: var(--darkermain);
     outline: none;
 }

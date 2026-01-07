@@ -407,7 +407,7 @@ const castleUpgrades = [
         effect: () => {
             castle.health = castle.maxHealth;
         },
-        defult: () =>{
+        default: () =>{
             castle.health = castle.maxHealth;
         },
     },
@@ -613,6 +613,7 @@ function animate() {
     });
 
     castle.update();
+    can.update(xpos, ypos);
 
     c.fillStyle = "white";
     c.font = "20px Arial";
