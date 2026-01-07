@@ -8,13 +8,16 @@ let c = canvas.getContext('2d');
 // 4 = glass
 
 const MAP = [
-  [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
-  [1,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,1],
-  [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
-  [1,0,0,0,0,0,0,0,0,0,4,0,0,0,0,0,0,0,0,1],
-  [1,0,0,0,0,0,0,0,0,0,0,0,0,3,0,0,0,0,0,1],
-  [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
-  [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]
+  [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
+  [1,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,0,0,0,0,0,0,1],
+  [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+  [1,0,0,0,0,0,0,0,0,0,4,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+  [1,0,0,0,0,0,0,0,0,0,0,0,0,3,0,0,0,0,0,0,0,0,0,0,0,1],
+  [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+  [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+  [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+  [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+  [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]
 ];
 
 const REQUIRED_KEYS = 3;
@@ -182,16 +185,22 @@ document.addEventListener("keyup", e => {
 
 let depthBuffer = new Float64Array(W);
 
+const TILE0_ENV = {
+  ceiling: [90, 90, 90],
+  floor:   [55, 55, 55]
+};
+
+function shadeColor(rgb, perpDist, factor) {
+  const shade = Math.max(20, 255 - perpDist * factor);
+  return `rgb(
+    ${(rgb[0] * shade / 255) | 0},
+    ${(rgb[1] * shade / 255) | 0},
+    ${(rgb[2] * shade / 255) | 0}
+  )`;
+}
+
 function castRays() {
   const pitchOffset = player.pitch * (H * 0.9);
-
-  // Sky
-  c.fillStyle = '#87CEEB';
-  c.fillRect(0, -H/2 + pitchOffset, W, H);
-
-  // Floor
-  c.fillStyle = '#444';
-  c.fillRect(0, H/2 + pitchOffset, W, H);
 
   for (let col = 0; col < W; col++) {
     const rayAngle = player.angle - player.fov/2 + (col / W) * player.fov;
@@ -263,9 +272,34 @@ function castRays() {
     const perpDist = dist * Math.cos(rayAngle - player.angle);
     depthBuffer[col] = perpDist;
     let lineHeight = (H / (perpDist + 0.0001)) * 0.8;
+    const wallTop = (H - lineHeight) / 2 + pitchOffset;
+    const wallBottom = wallTop + lineHeight;
+
+    // Ceiling
+    c.fillStyle = shadeColor(TILE0_ENV.ceiling, perpDist, 22);
+    c.fillRect(col, 0, 1, (H + wallTop)/2.5 + pitchOffset/2);
+
+    // Floor
+    c.fillStyle = shadeColor(TILE0_ENV.floor, perpDist, 60);
+    c.fillRect(col, wallBottom, 1, H - wallBottom);
+
     if (hitTile === 1) {
+      const shade = Math.max(30, 255 - perpDist * 35) | 0;
+      const fog = Math.min(perpDist * 12, 120) | 0;
+      c.fillStyle = `rgb(
+        ${Math.max(shade - fog, 20)},
+        ${Math.max(shade - fog, 20)},
+        ${Math.max(shade - fog, 20)}
+      )`;
+      c.fillRect(col, wallTop, 1, lineHeight);
+    } else if (hitTile === 1) {
       const shade = Math.max(30, 255 - perpDist*35) | 0;
-      c.fillStyle = `rgb(${shade},${shade},${shade})`;
+      const fog = Math.min(perpDist * 12, 120) | 0;
+      c.fillStyle = `rgb(
+        ${Math.max(shade - fog, 20)},
+        ${Math.max(shade - fog, 20)},
+        ${Math.max(shade - fog, 20)}
+      )`;
       c.fillRect(col, (H - lineHeight)/2 + pitchOffset, 1, lineHeight);
     } else if (hitTile === 2) {
       const key = `${hitX},${hitY}`;
@@ -273,13 +307,21 @@ function castRays() {
       let hscale = d ? d.height : 1;
       let doorLineHeight = lineHeight * hscale;
       const shade = Math.max(30, 190 - perpDist*30) | 0;
-      c.fillStyle = `rgb(${shade/1.2|0},${shade/1.6|0},${shade/3|0})`;
+      const fog = Math.min(perpDist * 12, 120) | 0;
+      c.fillStyle = `rgb(
+        ${Math.max(shade/1.3 - fog, 20)},
+        ${Math.max(shade/1.7 - fog, 20)},
+        ${Math.max(shade/3 - fog, 20)}
+      )`;
       c.fillRect(col, (H - doorLineHeight)/2 + pitchOffset, 1, doorLineHeight);
     } else if (hitTile === 3) { 
       const key = `${hitX},${hitY}`; 
       const lever = levers[key]; 
       const pressed = lever ? lever.pressed : false; 
-      const color = pressed ? "rgb(180,40,40)" : "rgb(40,180,40)"; 
+      const shade = Math.max(30, 190 - perpDist*30) | 0;
+      const fog = Math.min(perpDist * 12, 120) | 0;
+      const color = pressed ? `rgb(${Math.max(shade/1.1 - fog, 20)}, ${Math.max(shade/3 - fog, 20)}, ${Math.max(shade/3 - fog, 20)})` : `rgb(${Math.max(shade/3 - fog, 20)}, ${Math.max(shade/1.1 - fog, 20)}, ${Math.max(shade/3 - fog, 20)})`; 
+      // const color = pressed ? "rgb(180,40,40)" : "rgb(40,180,40)"; 
       const small = lineHeight * 1; 
       const y = (H - small) / 2 + pitchOffset; 
       c.fillStyle = `${color}`;
@@ -309,7 +351,6 @@ function drawSprites(time) {
     if (Math.abs(ang) > player.fov/2) continue;
     sprites.push({ type:'key', x:item.x, y:item.y, dist, ang, item });
   }
-
   for (let key in doors) {
     const [mx, my] = key.split(',').map(Number);
     const door = doors[key];
@@ -328,17 +369,18 @@ function drawSprites(time) {
     let ang = Math.atan2(dy, dx) - player.angle;
     ang = (ang + Math.PI * 3) % (Math.PI * 2) - Math.PI;
     if (Math.abs(ang) <= player.fov / 2) {
-        sprites.push({
-            type: 'doorMark',
-            x: cx,
-            y: cy,
-            dist,
-            ang,
-            doorKey: key
-        });
+      sprites.push({
+          type: 'doorMark',
+          x: cx,
+          y: cy,
+          dist,
+          ang,
+          doorKey: key
+      });
+      door.open = true; 
+      door.height < 0.2;
     }
-}
-
+  }
 
   sprites.sort((a,b) => b.dist - a.dist);
 
@@ -422,7 +464,7 @@ function animateDoors(dt) {
         if (d.open && d.height === 0) {
                 const [mx,my] = key.split(',').map(Number);
                 MAP[my][mx] = 0;
-            }
+        }
     }
 }
 
@@ -434,21 +476,26 @@ function collisionCheck(x, y) {
     switch (tile) {
       case 0: return true;
       case 1: return false;
-      case 2: 
-        const key = `${door.mx},${door.my}`;
-        const allowed = doorCheck(door, key, {
-            keysCollected,
-            requiredKeys: REQUIRED_KEYS,
-            player,
-            levers
-        });
-        if (allowed) {
-            doors[key].open = true;
-            return true;
-        } else {
-            showMsg('Door locked.', 900);
-            return false;
-        }
+      case 2:
+          const doorKey = `${mx},${my}`;
+          const door = doors[doorKey];
+
+          if (!door) return false;
+
+          const allowed = doorCheck(door, doorKey, {
+              keysCollected,
+              requiredKeys: REQUIRED_KEYS,
+              player,
+              levers
+          });
+
+          if (allowed) {
+              door.open = true;
+              return door.height < 0.2;
+          } else {
+              showMsg('Door locked.', 900);
+              return false;
+          }
       case 3: return false;
       case 4: return false;
       default: return false;
