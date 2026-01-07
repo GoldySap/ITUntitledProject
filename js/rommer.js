@@ -210,64 +210,69 @@ function castRays() {
     let dist = 0;
     let hitTile = 0;
     let hitX = 0, hitY = 0;
+    let glassHit = null;
 
     while (dist < 30) {
-        dist += 0.02;
-        const rx = player.x + cos * dist;
-        const ry = player.y + sin * dist;
-        const mx = Math.floor(rx);
-        const my = Math.floor(ry);
-        if (mx < 0 || my < 0 || mx >= MAP[0].length || my >= MAP.length) {
-            hitTile = 1;
-            break;
+      dist += 0.02;
+      const rx = player.x + cos * dist;
+      const ry = player.y + sin * dist;
+      const mx = Math.floor(rx);
+      const my = Math.floor(ry);
+      if (mx < 0 || my < 0 || mx >= MAP[0].length || my >= MAP.length) {
+          hitTile = 1;
+          break;
+      }
+      const tile = MAP[my][mx];
+      if (tile === 4) {
+        if (!glassHit) {
+            glassHit = {
+                dist,
+                x: mx,
+                y: my
+            };
         }
-        const tile = MAP[my][mx];
-        if (tile === 1) {
-            hitTile = 1;
+      }
+      if (tile === 1) {
+          hitTile = 1;
+          hitX = mx; hitY = my;
+          break;
+      }
+      if (tile === 2) {
+          const key = `${mx},${my}`;
+          const d = doors[key];
+          if (d && d.height > 0.02) {
+            hitTile = 2;
             hitX = mx; hitY = my;
             break;
-        }
-        if (tile === 2) {
-            const key = `${mx},${my}`;
-            const d = doors[key];
-            if (d && d.height > 0.02) {
+          }
+          const allowed = doorCheck(d, key, {
+              keysCollected,
+              requiredKeys: REQUIRED_KEYS,
+              player,
+              levers
+          });
+          if (allowed) {
+              d.open = true;
               hitTile = 2;
+              hitX = mx;
+              hitY = my;
+              break;
+          } else {
+              showMsg('Door locked.', 900);
+              hitTile = 2;
+              hitX = mx;
+              hitY = my;
+              break;
+          }
+      }
+      if (tile === 3) {
+          const l = levers[`${mx},${my}`];
+          if (l) {
+              hitTile = 3;
               hitX = mx; hitY = my;
               break;
-            }
-            const allowed = doorCheck(d, key, {
-                keysCollected,
-                requiredKeys: REQUIRED_KEYS,
-                player,
-                levers
-            });
-            if (allowed) {
-                d.open = true;
-                hitTile = 2;
-                hitX = mx;
-                hitY = my;
-                break;
-            } else {
-                showMsg('Door locked.', 900);
-                hitTile = 2;
-                hitX = mx;
-                hitY = my;
-                break;
-            }
-        }
-        if (tile === 3) {
-            const l = levers[`${mx},${my}`];
-            if (l) {
-                hitTile = 3;
-                hitX = mx; hitY = my;
-                break;
-            }
-        }
-        if (tile === 4) {
-            hitTile = 4;
-            hitX = mx; hitY = my;
-            break;
-        }
+          }
+      }
     }
     const perpDist = dist * Math.cos(rayAngle - player.angle);
     depthBuffer[col] = perpDist;
@@ -321,16 +326,23 @@ function castRays() {
       const shade = Math.max(30, 190 - perpDist*30) | 0;
       const fog = Math.min(perpDist * 12, 120) | 0;
       const color = pressed ? `rgb(${Math.max(shade/1.1 - fog, 20)}, ${Math.max(shade/3 - fog, 20)}, ${Math.max(shade/3 - fog, 20)})` : `rgb(${Math.max(shade/3 - fog, 20)}, ${Math.max(shade/1.1 - fog, 20)}, ${Math.max(shade/3 - fog, 20)})`; 
-      // const color = pressed ? "rgb(180,40,40)" : "rgb(40,180,40)"; 
       const small = lineHeight * 1; 
       const y = (H - small) / 2 + pitchOffset; 
       c.fillStyle = `${color}`;
       c.fillRect(col, y, 1, lineHeight);
-    } else if (hitTile === 4) {
-      const shade = Math.max(30, 255 - perpDist*35) | 0;
-      const opacity = Math.min(Math.max(0 + (perpDist * 0.25), 0.4), 1);
-      c.fillStyle = `rgba(${shade},${shade},${shade},${opacity})`;
-      c.fillRect(col, (H - lineHeight)/2 + pitchOffset, 1, lineHeight);
+    }
+    if (glassHit) {
+      const gDist = glassHit.dist * Math.cos(rayAngle - player.angle);
+      const gHeight = (H / (gDist + 0.0001)) * 0.8;
+
+      const gTop = (H - gHeight) / 2 + pitchOffset;
+
+      const alpha = Math.max(0.5, 0.1 + gDist * 0.15);
+      const shade = Math.max(50, 200 - gDist * 15) | 0;
+      const fog = Math.min(perpDist * 12, 120) | 0;
+
+      c.fillStyle = `rgba(${shade - fog, 40 / alpha},${shade - fog, 40 / alpha},${shade - fog, 40 / alpha},${alpha/2})`;
+      c.fillRect(col, gTop, 1, gHeight);
     }
   }
 }
