@@ -7,16 +7,27 @@ let c = canvas.getContext('2d');
 // 3 = lever
 // 4 = glass
 
+// map = 26x20
 const MAP = [
   [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
-  [1,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,0,0,0,0,0,0,1],
-  [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
-  [1,0,0,0,0,0,0,0,0,0,4,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
-  [1,0,0,0,0,0,0,0,0,0,0,0,0,3,0,0,0,0,0,0,0,0,0,0,0,1],
-  [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
-  [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
-  [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
-  [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+  [1,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+  [1,0,1,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+  [1,0,0,0,1,0,0,0,0,0,4,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+  [1,0,1,0,1,0,0,0,0,0,0,0,0,3,0,0,0,0,0,0,0,0,0,0,0,1],
+  [1,0,1,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+  [1,0,1,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+  [1,0,1,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+  [1,0,1,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+  [1,0,1,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+  [1,0,1,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+  [1,0,1,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+  [1,0,1,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+  [1,0,1,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+  [1,0,1,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+  [1,0,1,0,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+  [1,0,1,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+  [1,0,1,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+  [1,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
   [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]
 ];
 
@@ -129,7 +140,7 @@ function doorGet(doors, pos) {
     return doors[pos]?.condition || null;
 }
 
-function applyDefault(doors, type="allKeys") {
+function applyDefault(doors, type) {
     for (let pos in doors) {
         if (!doors[pos].condition) {
             doors[pos].condition = { type };
@@ -138,11 +149,11 @@ function applyDefault(doors, type="allKeys") {
 }
 
 applyDefault(doors, "allKeys");
-doorSet(doors, "1,1", { 
+doorSet(doors, "0,0", { 
     type: "lever",
-    leverPos: "13,4"
+    leverPos: "0,0"
 });
-doorSet(doors, "10,1", {
+doorSet(doors, "0,0", {
     type: "totalKeys",
     amount: 1
 });
@@ -185,8 +196,8 @@ document.addEventListener("keyup", e => {
 
 let depthBuffer = new Float64Array(W);
 
-const TILE0_ENV = {
-  ceiling: [90, 90, 90],
+const TILE0 = {
+  ceiling: [180, 180, 180],
   floor:   [55, 55, 55]
 };
 
@@ -279,26 +290,27 @@ function castRays() {
     let lineHeight = (H / (perpDist + 0.0001)) * 0.8;
     const wallTop = (H - lineHeight) / 2 + pitchOffset;
     const wallBottom = wallTop + lineHeight;
+    let factor = 30
 
     // Ceiling
-    c.fillStyle = shadeColor(TILE0_ENV.ceiling, perpDist, 22);
+    c.fillStyle = shadeColor(TILE0.ceiling, perpDist, factor);
     c.fillRect(col, 0, 1, (H + wallTop)/2.5 + pitchOffset/2);
 
     // Floor
-    c.fillStyle = shadeColor(TILE0_ENV.floor, perpDist, 60);
+    c.fillStyle = shadeColor(TILE0.floor, perpDist, factor * 2);
     c.fillRect(col, wallBottom, 1, H - wallBottom);
 
     if (hitTile === 1) {
-      const shade = Math.max(30, 255 - perpDist * 35) | 0;
+      const shade = Math.max(30, 255 - perpDist * factor) | 0;
       const fog = Math.min(perpDist * 12, 120) | 0;
       c.fillStyle = `rgb(
-        ${Math.max(shade - fog, 20)},
-        ${Math.max(shade - fog, 20)},
-        ${Math.max(shade - fog, 20)}
+        ${Math.max(shade - fog, 10)},
+        ${Math.max(shade - fog, 10)},
+        ${Math.max(shade - fog, 10)}
       )`;
       c.fillRect(col, wallTop, 1, lineHeight);
     } else if (hitTile === 1) {
-      const shade = Math.max(30, 255 - perpDist*35) | 0;
+      const shade = Math.max(30, 255 - perpDist * factor) | 0;
       const fog = Math.min(perpDist * 12, 120) | 0;
       c.fillStyle = `rgb(
         ${Math.max(shade - fog, 20)},
@@ -311,7 +323,7 @@ function castRays() {
       const d = doors[key];
       let hscale = d ? d.height : 1;
       let doorLineHeight = lineHeight * hscale;
-      const shade = Math.max(30, 190 - perpDist*30) | 0;
+      const shade = Math.max(30, 190 - perpDist * factor) | 0;
       const fog = Math.min(perpDist * 12, 120) | 0;
       c.fillStyle = `rgb(
         ${Math.max(shade/1.3 - fog, 20)},
@@ -323,7 +335,7 @@ function castRays() {
       const key = `${hitX},${hitY}`; 
       const lever = levers[key]; 
       const pressed = lever ? lever.pressed : false; 
-      const shade = Math.max(30, 190 - perpDist*30) | 0;
+      const shade = Math.max(30, 190 - perpDist * factor) | 0;
       const fog = Math.min(perpDist * 12, 120) | 0;
       const color = pressed ? `rgb(${Math.max(shade/1.1 - fog, 20)}, ${Math.max(shade/3 - fog, 20)}, ${Math.max(shade/3 - fog, 20)})` : `rgb(${Math.max(shade/3 - fog, 20)}, ${Math.max(shade/1.1 - fog, 20)}, ${Math.max(shade/3 - fog, 20)})`; 
       const small = lineHeight * 1; 
@@ -524,6 +536,14 @@ function showMsg(text, ms=1200) {
 let last = performance.now();
 
 function animate(now) {
+    // if (!gameRunning) {
+    //     c.fillStyle = "white";
+    //     c.font = "40px Arial";
+    //     c.textAlign = "center";
+    //     c.fillText("Press ENTER to Start", canvas.width / 2, canvas.height / 2);
+    //     return;
+    // }
+
     const dt = Math.min(0.05, (now - last) / 1000);
     last = now;
    
