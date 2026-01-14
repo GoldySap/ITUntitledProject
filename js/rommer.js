@@ -6,29 +6,28 @@ let c = canvas.getContext('2d');
 // 2 = door
 // 3 = lever
 // 4 = glass
+// 5 = key
+// 6 = goal
 
-// map = 26x20
+// MAP = 20x17
 const MAP = [
-  [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
-  [1,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
-  [1,0,1,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
-  [1,0,0,0,1,0,0,0,0,0,4,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
-  [1,0,1,0,1,0,0,0,0,0,0,0,0,3,0,0,0,0,0,0,0,0,0,0,0,1],
-  [1,0,1,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
-  [1,0,1,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
-  [1,0,1,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
-  [1,0,1,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
-  [1,0,1,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
-  [1,0,1,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
-  [1,0,1,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
-  [1,0,1,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
-  [1,0,1,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
-  [1,0,1,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
-  [1,0,1,0,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
-  [1,0,1,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
-  [1,0,1,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
-  [1,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
-  [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]
+  [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
+  [1,5,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+  [1,5,1,1,1,0,1,1,1,1,1,1,0,1,1,1,1,1,0,1],
+  [1,5,1,3,1,0,1,4,4,4,4,1,0,1,3,0,0,1,0,1],
+  [1,0,1,1,1,0,1,4,0,0,4,1,0,1,1,1,0,1,0,1],
+  [1,0,0,0,0,0,1,4,0,2,4,1,0,0,0,1,0,0,0,1],
+  [1,1,1,1,1,0,1,4,4,4,4,1,1,1,0,1,1,1,0,1],
+  [1,0,0,0,1,0,0,0,0,0,0,0,0,1,0,0,0,1,0,1],
+  [1,0,1,0,1,1,1,1,2,1,1,1,0,1,1,1,0,1,0,1],
+  [1,0,1,0,0,0,0,1,0,1,0,0,0,0,0,1,0,0,0,1],
+  [1,0,1,1,1,1,0,1,0,1,0,1,1,1,0,1,1,1,0,1],
+  [1,0,0,0,0,1,0,0,0,1,0,0,0,1,0,0,0,0,0,1],
+  [1,1,1,1,0,1,1,1,0,1,1,1,0,1,1,1,1,1,0,1],
+  [1,0,0,1,0,0,0,1,0,0,0,1,0,0,0,1,0,0,0,1],
+  [1,0,2,1,1,1,0,1,1,1,0,1,1,1,0,1,1,1,0,1],
+  [1,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,6,3,0,1],
+  [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]
 ];
 
 const REQUIRED_KEYS = 3;
@@ -39,6 +38,7 @@ const rows = MAP.length;
 const cols = MAP[0].length;
 const doors = {};
 const levers = {};
+const keysMap = {};
 const player = {
   x: 5,
   y: 5,
@@ -55,18 +55,30 @@ let mouseY = 0;
 let moveForward = 0;
 let moveSide = 0;
 let IsInteracting = false;
+let gameRunning = false;
+let goal = null;
+const MENU = {
+  START: "start",
+  PAUSE: "pause",
+  WIN: "win",
+  NONE: "none"
+};
 
-(function scanMapForDoors(){
+let menuState = MENU.START;
+
+(function scanMapForGoal(){
   for (let y = 0; y < rows; y++) {
     for (let x = 0; x < cols; x++) {
-      if (MAP[y][x] === 2) {
-        doors[`${x},${y}`] = { 
-          open: false, 
-          height: 1,
-          condition: { 
-            type: "allKeys"
-          }
-        };;
+      if (MAP[y][x] === 6) {
+        goal = {
+          x: x + 0.5,
+          y: y + 0.5,
+          mapX: x,
+          mapY: y,
+          reached: false
+        };
+        console.log(`Goal: ${x},${y}`);
+        MAP[y][x] = 0;
       }
     }
   }
@@ -77,52 +89,80 @@ let IsInteracting = false;
     for (let x = 0; x < cols; x++) {
       if (MAP[y][x] === 3) {
         levers[`${x},${y}`] = { pressed: false };
+        console.log(`Lever: ${x},${y}`)
       }
     }
   }
 })();
 
-function spawnKey() {
-  let tries = 0;
-  while (tries < 200) {
-    const x = Math.random() * cols;
-    const y = Math.random() * rows;
-    const mx = Math.floor(x);
-    const my = Math.floor(y);
-    if (mx >= 0 && my >= 0 && mx < cols && my < rows) {
-      if (MAP[my][mx] === 0) {
-        const dx = x + 0.5 - player.x;
-        const dy = y + 0.5 - player.y;
-        if (Math.hypot(dx,dy) > 1.2) {
-          return { x: x, y: y, picked:false, anim: Math.random()*6 };
-        }
+const items = [];
+
+(function scanMapForKeys(){
+  for (let y = 0; y < rows; y++) {
+    for (let x = 0; x < cols; x++) {
+      if (MAP[y][x] === 5) {
+        const keyObj = {
+          x: x + 0.5,
+          y: y + 0.5,
+          picked: false,
+          anim: Math.random() * 6,
+          mapX: x,
+          mapY: y
+        };
+        items.push(keyObj);
+        keysMap[`${x},${y}`] = keyObj;
+        MAP[y][x] = 0;
       }
     }
-    tries++;
   }
-  return { x: player.x+1, y: player.y, picked:false, anim:0 };
-}
+})();
 
-let items = [spawnKey(), spawnKey(), spawnKey()];
 let keysCollected = 0;
+
+(function scanMapForDoors(){
+  for (let y = 0; y < rows; y++) {
+    for (let x = 0; x < cols; x++) {
+      if (MAP[y][x] === 2) {
+        doors[`${x},${y}`] = { 
+          open: false, 
+          height: 1,
+          condition: null
+        };;
+        console.log(`Door: ${x},${y}`)
+      }
+    }
+  }
+})();
 
 function doorCheck(door, pos, context) {
     const cond = door.condition || { type: "allKeys" };
     switch (cond.type) {
         case "allKeys":
-            return context.keysCollected >= context.requiredKeys;
+          if (context.keysCollected >= context.requiredKeys) {
+            return true;
+          } else {
+            return false;
+          }
         case "specificKey":
-            return context.player.inventory?.[cond.keyName] === true;
-        case "lever":
-            return context.levers[cond.leverPos]?.pressed === true;
+          for (const keyPos in cond.states) {
+            const expected = cond.states[keyPos];
+            const actual = context.keys[keyPos]?.picked === true;
+            if (actual !== expected) return false;
+          }
+          return true;
+        case "levers":
+          for (const leverPos in cond.states) {
+            const expected = cond.states[leverPos];
+            const actual = context.levers[leverPos]?.pressed ?? false;
+            if (actual !== expected) return false;
+          }
+          return true;
         case "keyCount":
             return (context.player.keyCount?.[cond.keyType] || 0) >= cond.amount;
         case "totalKeys":
             return context.keysCollected >= cond.amount;
         case "custom":
-            return typeof cond.check === "function" 
-                ? cond.check(door, pos, context) 
-                : false;
+            return typeof cond.check === "function" ? cond.check(door, pos, context) : false;
         default:
             return false;
     }
@@ -141,32 +181,45 @@ function doorGet(doors, pos) {
 }
 
 function applyDefault(doors, type) {
-    for (let pos in doors) {
-        if (!doors[pos].condition) {
-            doors[pos].condition = { type };
-        }
+  for (let pos in doors) {
+    if (!doors[pos].condition) {
+      doors[pos].condition = { type };
     }
+  }
 }
 
+
 applyDefault(doors, "allKeys");
-doorSet(doors, "0,0", { 
-    type: "lever",
-    leverPos: "0,0"
+doorSet(doors, "8,8", {
+  type: "levers",
+  states: {
+    "17,15": true
+  }
 });
-doorSet(doors, "0,0", {
-    type: "totalKeys",
-    amount: 1
-});
-// doorSet(doors, "7,1", {
-//     type: "custom",
-//     doorCheck: (door, pos, ctx) => {
-//         return ctx.keysCollected >= 2 && ctx.levers["13,4"].pressed;
+// doorSet(doors, "2,14", {
+//     type: "specificKey",
+//     states: {
+//       "1,1": true
 //     }
 // });
+// doorSet(doors, "9,5", {
+//   type: "custom",
+//   check: (door, pos, ctx) =>
+//     ctx.keys?.["1,1"]?.picked === true &&
+//     ctx.levers?.["17,15"]?.pressed === true
+// });
+
 
 
 canvas.addEventListener("click", () => {
     canvas.requestPointerLock();
+});
+
+document.addEventListener("pointerlockchange", () => {
+  const locked = document.pointerLockElement === canvas;
+  if (!locked && gameRunning) {
+    pauseGame();
+  }
 });
 
 document.addEventListener("mousemove", e => {
@@ -179,14 +232,32 @@ document.addEventListener("mousemove", e => {
 });
 
 document.addEventListener("keydown", e => {
+  if (e.key === "Enter") {
+    if (menuState === MENU.START || menuState === MENU.PAUSE) {
+      startGame();
+    }
+    if (menuState === MENU.WIN) {
+      startGame();
+    }
+  }
+  if (e.key === "Escape") {
+    if (gameRunning) {
+      e.preventDefault();
+      pauseGame();
+    }
+    if (!gameRunning && MENU.WIN) {
+      document.exitPointerLock
+    }
+  }
+  if (!gameRunning) return;
+
   if (e.key === "e") tryInteract();
   if (e.key === "w") moveForward = 1;
   if (e.key === "s") moveForward = -1;
   if (e.key === "a") moveSide = -1;
   if (e.key === "d") moveSide = 1;
-  if (e.key === "ArrowLeft") player.turn = -1;
-  if (e.key === "ArrowRight") player.turn = 1;
 });
+
 
 document.addEventListener("keyup", e => {
   if (e.key === "w" || e.key === "s") moveForward = 0;
@@ -260,7 +331,8 @@ function castRays() {
               keysCollected,
               requiredKeys: REQUIRED_KEYS,
               player,
-              levers
+              levers,
+              keys: keysMap
           });
           if (allowed) {
               d.open = true;
@@ -382,7 +454,8 @@ function drawSprites(time) {
         keysCollected,
         requiredKeys: REQUIRED_KEYS,
         player,
-        levers
+        levers,
+        keys: keysMap
     });
     if (!allowed) continue;
     const cx = mx + 0.5;
@@ -403,6 +476,24 @@ function drawSprites(time) {
       });
       door.open = true; 
       door.height < 0.2;
+    }
+  }
+
+  if (goal && !goal.reached) {
+    const dx = goal.x - player.x;
+    const dy = goal.y - player.y;
+    const dist = Math.hypot(dx, dy);
+    let ang = Math.atan2(dy, dx) - player.angle;
+    ang = (ang + Math.PI*3) % (Math.PI*2) - Math.PI;
+
+    if (Math.abs(ang) <= player.fov / 2) {
+      sprites.push({
+        type: 'goal',
+        x: goal.x,
+        y: goal.y,
+        dist,
+        ang
+      });
     }
   }
 
@@ -438,6 +529,22 @@ function drawSprites(time) {
           c.fillStyle = 'rgba(255,80,80,0.95)';
           c.fillRect(x, y, 1, spriteHeight);
       }
+    } else if (s.type === 'goal') {
+      const spriteHeight = (1 / s.dist) * 260;
+      const spriteWidth  = spriteHeight * 0.9;
+      const pulse = Math.sin(time * 4) * 0.15;
+      const y = (H/2) - spriteHeight + pulse * 30 + pitchOffset;
+
+      const left = Math.floor(screenX - spriteWidth / 2);
+      const right = Math.floor(screenX + spriteWidth / 2);
+
+      for (let x = left; x <= right; x++) {
+        if (x < 0 || x >= W) continue;
+        if (depthBuffer[x] < s.dist) continue;
+
+        c.fillStyle = 'rgba(80,200,255,0.95)';
+        c.fillRect(x, y, 1, spriteHeight);
+      }
     }
   }
 }
@@ -466,83 +573,158 @@ function checkPickups() {
       it.picked = true;
       keysCollected++;
       showMsg('Picked up a key.', 1100);
-      if (keysCollected >= REQUIRED_KEYS) unlockAllDoors();
     }
   }
 }
 
-function unlockAllDoors() {
-    for (let key in doors) {
-        doors[key].open = true;
-    }
-    showMsg('All keys collected. doors opening!', 1400);
+function checkGoal() {
+  if (!goal || goal.reached) return;
+
+  const dx = goal.x - player.x;
+  const dy = goal.y - player.y;
+
+  if (Math.hypot(dx, dy) < 0.6) {
+    goal.reached = true;
+    winGame();
+  }
 }
 
 function animateDoors(dt) {
-    for (let key in doors) {
-        const d = doors[key];
-        if (d.open && d.height > 0) {
-            d.height -= dt * 0.7;
-            if (d.height < 0) d.height = 0;
-        }
-        if (d.open && d.height === 0) {
-                const [mx,my] = key.split(',').map(Number);
-                MAP[my][mx] = 0;
-        }
+  for (let key in doors) {
+    const d = doors[key];
+    if (d.open && d.height > 0) {
+      d.height -= dt * 0.7;
+      if (d.height < 0) d.height = 0;
     }
+    if (d.open && d.height === 0) {
+      const [mx,my] = key.split(',').map(Number);
+      MAP[my][mx] = 0;
+    }
+  }
 }
 
 function collisionCheck(x, y) {
-    const mx = Math.floor(x);
-    const my = Math.floor(y);
-    if (mx < 0 || my < 0 || my >= MAP.length || mx >= MAP[0].length) return false;
-    const tile = MAP[my][mx];
-    switch (tile) {
-      case 0: return true;
-      case 1: return false;
-      case 2:
-          const doorKey = `${mx},${my}`;
-          const door = doors[doorKey];
+  const mx = Math.floor(x);
+  const my = Math.floor(y);
+  if (mx < 0 || my < 0 || my >= MAP.length || mx >= MAP[0].length) return false;
+  const tile = MAP[my][mx];
+  switch (tile) {
+    case 0: return true;
+    case 1: return false;
+    case 2:
+      const doorKey = `${mx},${my}`;
+      const door = doors[doorKey];
 
-          if (!door) return false;
+      if (!door) return false;
 
-          const allowed = doorCheck(door, doorKey, {
-              keysCollected,
-              requiredKeys: REQUIRED_KEYS,
-              player,
-              levers
-          });
+      const allowed = doorCheck(door, doorKey, {
+        keysCollected,
+        requiredKeys: REQUIRED_KEYS,
+        player,
+        levers,
+        keys: keysMap
+      });
 
-          if (allowed) {
-              door.open = true;
-              return door.height < 0.2;
-          } else {
-              showMsg('Door locked.', 900);
-              return false;
-          }
-      case 3: return false;
-      case 4: return false;
-      default: return false;
-    }
+      if (allowed) {
+        door.open = true;
+        return door.height < 0.2;
+      } else {
+        showMsg('Door locked.', 900);
+        return false;
+      }
+    case 3: return false;
+    case 4: return false;
+    default: return false;
+  }
 }
 
 let msgTimeout = null;
+
 function showMsg(text, ms=1200) {
-    msg = text;
-    if (msgTimeout) clearTimeout(msgTimeout);
-    msgTimeout = setTimeout(()=>{ msg = ''; }, ms);
+  msg = text;
+  if (msgTimeout) clearTimeout(msgTimeout);
+  msgTimeout = setTimeout(()=>{ msg = ''; }, ms);
+}
+
+function drawMenu() {
+  c.fillStyle = "rgba(0,0,0,0.7)";
+  c.fillRect(0, 0, W, H);
+
+  c.textAlign = "center";
+  c.fillStyle = "white";
+
+  if (menuState === MENU.START) {
+    c.font = "48px Arial";
+    c.fillText("RAYCAST GAME", W / 2, H / 2 - 60);
+
+    c.font = "24px Arial";
+    c.fillText("Press ENTER to Start", W / 2, H / 2);
+    c.fillText("WASD to move • Mouse to look • E to interact", W / 2, H / 2 + 40);
+  }
+
+  if (menuState === MENU.PAUSE) {
+    c.font = "42px Arial";
+    c.fillText("Paused", W / 2, H / 2 - 40);
+
+    c.font = "24px Arial";
+    c.fillText("Press ENTER to Resume", W / 2, H / 2);
+    c.fillText("ESC to Pause", W / 2, H / 2 + 40);
+  }
+
+  if (menuState === MENU.WIN) {
+    c.font = "48px Arial";
+    c.fillText("You Escaped!", W / 2, H / 2 - 40);
+
+    c.font = "24px Arial";
+    c.fillText("Press ENTER to Restart", W / 2, H / 2 + 10);
+  }
+}
+
+
+function toggleGame() {
+    if (gameRunning) {
+        stopGame();
+    } else {
+        startGame();
+    }
+}
+
+function startGame() {
+  gameRunning = true;
+  menuState = MENU.NONE;
+  canvas.requestPointerLock();
+}
+
+function pauseGame() {
+  gameRunning = false;
+  menuState = MENU.PAUSE;
+  document.exitPointerLock();
+}
+
+function winGame() {
+  gameRunning = false;
+  menuState = MENU.WIN;
+  document.exitPointerLock();
+}
+
+function restartGame() {
+  gameRunning = true;
+  menuState = MENU.NONE;
+  canvas.requestPointerLock();
 }
 
 let last = performance.now();
 
 function animate(now) {
-    // if (!gameRunning) {
-    //     c.fillStyle = "white";
-    //     c.font = "40px Arial";
-    //     c.textAlign = "center";
-    //     c.fillText("Press ENTER to Start", canvas.width / 2, canvas.height / 2);
-    //     return;
-    // }
+    c.clearRect(0, 0, W, H);
+
+    if (!gameRunning) {
+      drawMenu();
+      requestAnimationFrame(animate);
+      return;
+    }
+
+    checkGoal();
 
     const dt = Math.min(0.05, (now - last) / 1000);
     last = now;
