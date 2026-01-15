@@ -9,36 +9,104 @@ let c = canvas.getContext('2d');
 // 5 = key
 // 6 = goal
 
-// MAP = 20x17
-const MAP = [
-  [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
-  [1,5,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
-  [1,5,1,1,1,0,1,1,1,1,1,1,0,1,1,1,1,1,0,1],
-  [1,5,1,3,1,0,1,4,4,4,4,1,0,1,3,0,0,1,0,1],
-  [1,0,1,1,1,0,1,4,0,0,4,1,0,1,1,1,0,1,0,1],
-  [1,0,0,0,0,0,1,4,0,2,4,1,0,0,0,1,0,0,0,1],
-  [1,1,1,1,1,0,1,4,4,4,4,1,1,1,0,1,1,1,0,1],
-  [1,0,0,0,1,0,0,0,0,0,0,0,0,1,0,0,0,1,0,1],
-  [1,0,1,0,1,1,1,1,2,1,1,1,0,1,1,1,0,1,0,1],
-  [1,0,1,0,0,0,0,1,0,1,0,0,0,0,0,1,0,0,0,1],
-  [1,0,1,1,1,1,0,1,0,1,0,1,1,1,0,1,1,1,0,1],
-  [1,0,0,0,0,1,0,0,0,1,0,0,0,1,0,0,0,0,0,1],
-  [1,1,1,1,0,1,1,1,0,1,1,1,0,1,1,1,1,1,0,1],
-  [1,0,0,1,0,0,0,1,0,0,0,1,0,0,0,1,0,0,0,1],
-  [1,0,2,1,1,1,0,1,1,1,0,1,1,1,0,1,1,1,0,1],
-  [1,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,6,3,0,1],
-  [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]
+const MAPS = [
+{map: [
+[1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
+[1,5,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+[1,5,1,1,1,0,1,1,1,1,1,1,0,1,1,1,1,1,0,1],
+[1,5,1,3,1,0,1,4,4,4,4,1,0,1,3,0,0,1,0,1],
+[1,0,1,1,1,0,1,4,0,0,4,1,0,1,1,1,0,1,0,1],
+[1,0,0,0,0,0,1,4,0,2,4,1,0,0,0,1,0,0,0,1],
+[1,1,1,1,1,0,1,4,4,4,4,1,1,1,0,1,1,1,0,1],
+[1,0,0,0,1,0,0,0,0,0,0,0,0,1,0,0,0,1,0,1],
+[1,0,1,0,1,1,1,1,2,1,1,1,0,1,1,1,0,1,0,1],
+[1,0,1,0,0,0,0,1,0,1,0,0,0,0,0,1,0,0,0,1],
+[1,0,1,1,1,1,0,1,0,1,0,1,1,1,0,1,1,1,0,1],
+[1,0,0,0,0,1,0,0,0,1,0,0,0,1,0,0,0,0,0,1],
+[1,1,1,1,0,1,1,1,0,1,1,1,0,1,1,1,1,1,0,1],
+[1,0,0,1,0,0,0,1,0,0,0,1,0,0,0,1,0,0,0,1],
+[1,0,2,1,1,1,0,1,1,1,0,1,1,1,0,1,1,1,0,1],
+[1,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,6,3,0,1],
+[1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]
+],
+spawn: { x: 5.5, y: 5.5, angle: 0 },
+REQUIRED_KEYS: 3,
+dcDefault: "allKeys",
+dcSpesifics: [
+  {
+    door: "8,8",
+    logic:"OR",
+    spesific: [
+      {
+        pos: "8,8",
+        logic: "OR",
+        conditions: [
+          {
+            type: "levers",
+            states: { "17,15": true }
+          }
+        ]
+      }
+    ]
+  },
+],},
+{map: [
+[1,1,1,1,1,1,1,1,1,1,1,1,1],
+[1,0,0,0,1,0,0,0,1,0,0,0,1],
+[1,0,0,0,1,0,0,0,2,0,0,0,1],
+[1,0,0,0,1,0,5,0,1,0,0,0,1],
+[1,0,0,0,1,1,1,1,1,0,0,0,1],
+[1,0,0,0,0,0,0,0,4,0,0,0,1],
+[1,0,0,0,0,0,0,0,4,4,4,4,1],
+[1,0,0,0,0,0,0,0,0,0,0,0,1],
+[1,0,0,0,0,0,0,0,0,0,0,0,1],
+[1,0,0,0,0,0,0,0,0,0,0,0,1],
+[1,0,0,0,0,0,0,0,0,0,0,0,1],
+[1,0,0,0,0,0,0,0,0,0,0,0,1],
+[1,0,0,0,0,0,0,0,0,0,0,0,1],
+[1,0,0,0,0,0,0,0,0,0,0,0,1],
+[1,0,0,0,0,0,0,0,0,0,0,0,1],
+[1,0,0,0,0,6,0,0,0,0,0,0,1],
+[1,1,1,1,1,1,1,1,1,1,1,1,1]
+],
+spawn: { x: 6.5, y: 2.5, angle: Math.PI / 2 },
+REQUIRED_KEYS: 0,
+dcDefault: null,
+dcSpesifics: [
+  {
+    pos: "8,2",
+    logic: "OR",
+    conditions: [
+      {
+        type: "specificKey",
+        states: { "6,3": true }
+      }
+    ]
+  },
+],},
 ];
 
-const REQUIRED_KEYS = 3;
+// doorSet(doors, "9,5", {
+//   type: "custom",
+//   check: (door, pos, ctx) =>
+//     ctx.keys?.["1,1"]?.picked === true &&
+//     ctx.levers?.["17,15"]?.pressed === true
+// });
+
+let currentLevel = 0;
+let MAP = [];
+let REQUIRED_KEYS = 3;
+let keysCollected = 0;
+let msgTimeout = null;
 let msg = ''
+let rows = null;
+let cols = null;
 const W = canvas.width = window.innerWidth;
 const H = canvas.height = window.innerHeight;
-const rows = MAP.length;
-const cols = MAP[0].length;
 const doors = {};
 const levers = {};
 const keysMap = {};
+const items = [];
 const player = {
   x: 5,
   y: 5,
@@ -64,9 +132,11 @@ const MENU = {
   NONE: "none"
 };
 
+loadLevel(1);
+
 let menuState = MENU.START;
 
-(function scanMapForGoal(){
+function scanMapForGoal(){
   for (let y = 0; y < rows; y++) {
     for (let x = 0; x < cols; x++) {
       if (MAP[y][x] === 6) {
@@ -82,9 +152,9 @@ let menuState = MENU.START;
       }
     }
   }
-})();
+};
 
-(function scanMapForLevers(){
+function scanMapForLevers(){
   for (let y = 0; y < rows; y++) {
     for (let x = 0; x < cols; x++) {
       if (MAP[y][x] === 3) {
@@ -93,11 +163,9 @@ let menuState = MENU.START;
       }
     }
   }
-})();
+};
 
-const items = [];
-
-(function scanMapForKeys(){
+function scanMapForKeys(){
   for (let y = 0; y < rows; y++) {
     for (let x = 0; x < cols; x++) {
       if (MAP[y][x] === 5) {
@@ -112,104 +180,157 @@ const items = [];
         items.push(keyObj);
         keysMap[`${x},${y}`] = keyObj;
         MAP[y][x] = 0;
+        console.log(`Key: ${x},${y}`)
       }
     }
   }
-})();
+};
 
-let keysCollected = 0;
-
-(function scanMapForDoors(){
+function scanMapForDoors(){
   for (let y = 0; y < rows; y++) {
     for (let x = 0; x < cols; x++) {
       if (MAP[y][x] === 2) {
         doors[`${x},${y}`] = { 
           open: false, 
           height: 1,
-          condition: null
-        };;
+          logic: "AND",
+          conditions: []
+        };
         console.log(`Door: ${x},${y}`)
       }
     }
   }
-})();
+};
 
 function doorCheck(door, pos, context) {
-    const cond = door.condition || { type: "allKeys" };
-    switch (cond.type) {
-        case "allKeys":
-          if (context.keysCollected >= context.requiredKeys) {
-            return true;
-          } else {
-            return false;
-          }
-        case "specificKey":
-          for (const keyPos in cond.states) {
-            const expected = cond.states[keyPos];
-            const actual = context.keys[keyPos]?.picked === true;
-            if (actual !== expected) return false;
-          }
-          return true;
-        case "levers":
-          for (const leverPos in cond.states) {
-            const expected = cond.states[leverPos];
-            const actual = context.levers[leverPos]?.pressed ?? false;
-            if (actual !== expected) return false;
-          }
-          return true;
-        case "keyCount":
-            return (context.player.keyCount?.[cond.keyType] || 0) >= cond.amount;
-        case "totalKeys":
-            return context.keysCollected >= cond.amount;
-        case "custom":
-            return typeof cond.check === "function" ? cond.check(door, pos, context) : false;
-        default:
-            return false;
-    }
+  if (!door || !door.conditions || door.conditions.length === 0) {
+    return true;
+  }
+
+  const logic = door.logic || "AND";
+
+  if (logic === "OR") {
+    return door.conditions.some(cond =>
+      checkSingleCondition(cond, door, pos, context)
+    );
+  }
+
+  return door.conditions.every(cond =>
+    checkSingleCondition(cond, door, pos, context)
+  );
 }
+
+function checkSingleCondition(cond, door, pos, context) {
+  switch (cond.type) {
+
+    case "allKeys":
+      return context.keysCollected >= context.requiredKeys;
+
+    case "specificKey":
+      for (const keyPos in cond.states) {
+        const expected = cond.states[keyPos];
+        const actual = context.keys[keyPos]?.picked === true;
+        if (actual !== expected) return false;
+      }
+      return true;
+
+    case "levers":
+      for (const leverPos in cond.states) {
+        const expected = cond.states[leverPos];
+        const actual = context.levers[leverPos]?.pressed ?? false;
+        if (actual !== expected) return false;
+      }
+      return true;
+
+    case "keyCount":
+      return (context.player.keyCount?.[cond.keyType] || 0) >= cond.amount;
+
+    case "totalKeys":
+      return context.keysCollected >= cond.amount;
+
+    case "custom":
+      return typeof cond.check === "function"
+        ? cond.check(door, pos, context)
+        : false;
+
+    default:
+      console.warn("Unknown condition:", cond.type);
+      return false;
+  }
+}
+
 
 function doorSet(doors, pos, condition) {
-    if (!doors[pos]) {
-        console.warn("Door not found:", pos);
-        return;
-    }
-    doors[pos].condition = condition;
-}
+  if (!doors[pos]) {
+    console.warn("Door not found:", pos);
+    return;
+  }
 
-function doorGet(doors, pos) {
-    return doors[pos]?.condition || null;
+  doors[pos].conditions.push(condition);
 }
 
 function applyDefault(doors, type) {
   for (let pos in doors) {
-    if (!doors[pos].condition) {
-      doors[pos].condition = { type };
+    if (doors[pos].conditions.length === 0) {
+      doors[pos].conditions.push({ type });
     }
   }
 }
 
+function showMsg(text, ms=1200) {
+  msg = text;
+  if (msgTimeout) clearTimeout(msgTimeout);
+  msgTimeout = setTimeout(()=>{ msg = ''; }, ms);
+}
 
-applyDefault(doors, "allKeys");
-doorSet(doors, "8,8", {
-  type: "levers",
-  states: {
-    "17,15": true
+function loadLevel(index) {
+  const level = MAPS[index];
+  if (!level) return;
+
+  currentLevel = index;
+
+  MAP = level.map.map(row => [...row]);
+
+  rows = MAP.length;
+  cols = MAP[0].length;
+
+  REQUIRED_KEYS = level.REQUIRED_KEYS;
+
+  player.x = level.spawn.x;
+  player.y = level.spawn.y;
+  player.angle = level.spawn.angle ?? 0;
+
+  keysCollected = 0;
+  items.length = 0;
+  goal = null;
+
+  for (let k in doors) delete doors[k];
+  for (let k in levers) delete levers[k];
+  for (let k in keysMap) delete keysMap[k];
+
+  scanMapForDoors();
+  scanMapForLevers();
+  scanMapForKeys();
+  scanMapForGoal();
+
+  if (level.dcDefault) {
+    applyDefault(doors, level.dcDefault);
   }
-});
-// doorSet(doors, "2,14", {
-//     type: "specificKey",
-//     states: {
-//       "1,1": true
-//     }
-// });
-// doorSet(doors, "9,5", {
-//   type: "custom",
-//   check: (door, pos, ctx) =>
-//     ctx.keys?.["1,1"]?.picked === true &&
-//     ctx.levers?.["17,15"]?.pressed === true
-// });
 
+  for (const rule of level.dcSpesifics || []) {
+    const door = doors[rule.pos];
+    if (!door) continue;
 
+    door.logic = rule.logic ?? door.logic;
+    door.conditions.length = 0;
+
+    for (const cond of rule.conditions) {
+      doorSet(doors, rule.pos, cond);
+    }
+  }
+
+  showMsg(`Level ${index + 1}`, 1200);
+}
 
 canvas.addEventListener("click", () => {
     canvas.requestPointerLock();
@@ -237,7 +358,7 @@ document.addEventListener("keydown", e => {
       startGame();
     }
     if (menuState === MENU.WIN) {
-      startGame();
+      restartGame();
     }
   }
   if (e.key === "Escape") {
@@ -376,15 +497,6 @@ function castRays() {
       const shade = Math.max(30, 255 - perpDist * factor) | 0;
       const fog = Math.min(perpDist * 12, 120) | 0;
       c.fillStyle = `rgb(
-        ${Math.max(shade - fog, 10)},
-        ${Math.max(shade - fog, 10)},
-        ${Math.max(shade - fog, 10)}
-      )`;
-      c.fillRect(col, wallTop, 1, lineHeight);
-    } else if (hitTile === 1) {
-      const shade = Math.max(30, 255 - perpDist * factor) | 0;
-      const fog = Math.min(perpDist * 12, 120) | 0;
-      c.fillStyle = `rgb(
         ${Math.max(shade - fog, 20)},
         ${Math.max(shade - fog, 20)},
         ${Math.max(shade - fog, 20)}
@@ -475,7 +587,7 @@ function drawSprites(time) {
           doorKey: key
       });
       door.open = true; 
-      door.height < 0.2;
+      // door.height < 0.2;
     }
   }
 
@@ -638,14 +750,6 @@ function collisionCheck(x, y) {
   }
 }
 
-let msgTimeout = null;
-
-function showMsg(text, ms=1200) {
-  msg = text;
-  if (msgTimeout) clearTimeout(msgTimeout);
-  msgTimeout = setTimeout(()=>{ msg = ''; }, ms);
-}
-
 function drawMenu() {
   c.fillStyle = "rgba(0,0,0,0.7)";
   c.fillRect(0, 0, W, H);
@@ -708,6 +812,7 @@ function winGame() {
 }
 
 function restartGame() {
+  loadLevel(0);
   gameRunning = true;
   menuState = MENU.NONE;
   canvas.requestPointerLock();
@@ -747,7 +852,11 @@ function animate(now) {
 
     c.fillStyle = "white";
     c.font = "20px Arial";
-    c.fillText(`Keys: ${keysCollected} / ${REQUIRED_KEYS}`, 60, 60);
+    if (!REQUIRED_KEYS || REQUIRED_KEYS <= 0) {
+      c.fillText(`Keys: ${keysCollected}`, 60, 60);
+    } else {
+      c.fillText(`Keys: ${keysCollected} / ${REQUIRED_KEYS}`, 60, 60);
+    }
     c.fillText(`${msg}`, canvas.width / 2, canvas.height - 50);
 
     requestAnimationFrame(animate);
