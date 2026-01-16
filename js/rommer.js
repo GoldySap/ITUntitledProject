@@ -11,6 +11,81 @@ let c = canvas.getContext('2d');
 
 const MAPS = [
 {map: [
+[1,1,1,1,1,1,1,1,1,1,1,1,1],
+[1,0,5,0,1,0,0,0,1,0,0,0,1],
+[1,0,0,0,1,0,0,0,2,0,0,0,1],
+[1,0,0,0,1,0,0,0,1,0,0,0,1],
+[1,1,2,1,1,1,3,1,1,0,0,0,1],
+[3,0,0,0,0,0,0,0,4,0,0,0,1],
+[1,0,0,0,0,0,0,0,4,0,0,0,1],
+[1,1,1,1,2,1,1,1,1,1,1,0,1],
+[1,0,2,0,0,0,0,0,0,0,1,0,1],
+[1,0,1,0,0,0,0,0,0,0,0,0,1],
+[1,0,1,0,0,0,0,0,0,0,1,1,1],
+[1,0,1,1,1,1,0,0,0,0,0,0,1],
+[1,0,0,0,0,1,0,0,0,0,0,0,1],
+[1,1,1,1,0,1,0,0,0,0,0,0,1],
+[1,6,0,1,0,1,0,0,0,0,0,0,1],
+[1,0,0,0,0,1,0,3,0,3,0,3,1],
+[1,1,1,1,1,1,1,1,1,1,1,1,1]
+],
+spawn: { x: 6.5, y: 2.5, angle: Math.PI / 2 },
+REQUIRED_KEYS: 0,
+dcDefault: null,
+dcSpesifics: [
+  {
+    pos: "8,2",
+    logic: "OR",
+    conditions: [
+      {
+        type: "levers",
+        states: { "6,4": true }
+      }
+    ]
+  },
+  {
+    pos: "2,4",
+    logic: "OR",
+    conditions: [
+      {
+        type: "levers",
+        states: { "0,5": true }
+      }
+    ]
+  },
+  {
+    pos: "4,7",
+    logic: "AND",
+    conditions: [
+      {
+        type: "levers",
+        states: { 
+          "7,15": true,
+          "9,15": false,
+          "11,15": true
+        }
+      },
+    ]
+  },
+  {
+    pos: "2,8",
+    logic: "AND",
+    conditions: [
+      {
+        type: "levers",
+        states: { 
+          "0,5": true,
+          "6,4": false
+         }
+      },
+      {
+        type: "specificKey",
+        states: { "2,1": true }
+      }
+    ]
+  },
+],},
+{map: [
 [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
 [1,5,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
 [1,5,1,1,1,0,1,1,1,1,1,1,0,1,1,1,1,1,0,1],
@@ -46,40 +121,6 @@ dcSpesifics: [
             states: { "17,15": true }
           }
         ]
-      }
-    ]
-  },
-],},
-{map: [
-[1,1,1,1,1,1,1,1,1,1,1,1,1],
-[1,0,0,0,1,0,0,0,1,0,0,0,1],
-[1,0,0,0,1,0,0,0,2,0,0,0,1],
-[1,0,0,0,1,0,5,0,1,0,0,0,1],
-[1,0,0,0,1,1,1,1,1,0,0,0,1],
-[1,0,0,0,0,0,0,0,4,0,0,0,1],
-[1,0,0,0,0,0,0,0,4,4,4,4,1],
-[1,0,0,0,0,0,0,0,0,0,0,0,1],
-[1,0,0,0,0,0,0,0,0,0,0,0,1],
-[1,0,0,0,0,0,0,0,0,0,0,0,1],
-[1,0,0,0,0,0,0,0,0,0,0,0,1],
-[1,0,0,0,0,0,0,0,0,0,0,0,1],
-[1,0,0,0,0,0,0,0,0,0,0,0,1],
-[1,0,0,0,0,0,0,0,0,0,0,0,1],
-[1,0,0,0,0,0,0,0,0,0,0,0,1],
-[1,0,0,0,0,6,0,0,0,0,0,0,1],
-[1,1,1,1,1,1,1,1,1,1,1,1,1]
-],
-spawn: { x: 6.5, y: 2.5, angle: Math.PI / 2 },
-REQUIRED_KEYS: 0,
-dcDefault: null,
-dcSpesifics: [
-  {
-    pos: "8,2",
-    logic: "OR",
-    conditions: [
-      {
-        type: "specificKey",
-        states: { "6,3": true }
       }
     ]
   },
@@ -132,7 +173,7 @@ const MENU = {
   NONE: "none"
 };
 
-loadLevel(1);
+loadLevel(currentLevel);
 
 let menuState = MENU.START;
 
@@ -358,7 +399,7 @@ document.addEventListener("keydown", e => {
       startGame();
     }
     if (menuState === MENU.WIN) {
-      restartGame();
+      hasNextLevel() ? nextGame() : restartGame();
     }
   }
   if (e.key === "Escape") {
@@ -414,6 +455,7 @@ function castRays() {
     let hitTile = 0;
     let hitX = 0, hitY = 0;
     let glassHit = null;
+    let doorHit = null;
 
     while (dist < 30) {
       dist += 0.02;
@@ -435,39 +477,20 @@ function castRays() {
             };
         }
       }
+      if (tile === 2) {
+        const d = doors[`${mx},${my}`];
+        if (d && d.height > 0.01) {
+          hitTile = 2;
+          hitX = mx;
+          hitY = my;
+          break;
+        }
+        continue;
+      }
       if (tile === 1) {
           hitTile = 1;
           hitX = mx; hitY = my;
           break;
-      }
-      if (tile === 2) {
-          const key = `${mx},${my}`;
-          const d = doors[key];
-          if (d && d.height > 0.02) {
-            hitTile = 2;
-            hitX = mx; hitY = my;
-            break;
-          }
-          const allowed = doorCheck(d, key, {
-              keysCollected,
-              requiredKeys: REQUIRED_KEYS,
-              player,
-              levers,
-              keys: keysMap
-          });
-          if (allowed) {
-              d.open = true;
-              hitTile = 2;
-              hitX = mx;
-              hitY = my;
-              break;
-          } else {
-              showMsg('Door locked.', 900);
-              hitTile = 2;
-              hitX = mx;
-              hitY = my;
-              break;
-          }
       }
       if (tile === 3) {
           const l = levers[`${mx},${my}`];
@@ -527,16 +550,21 @@ function castRays() {
       c.fillStyle = `${color}`;
       c.fillRect(col, y, 1, lineHeight);
     }
+    if (doorHit) {
+      const dDist = doorHit.dist * Math.cos(rayAngle - player.angle);
+      const dHeight = (H / (dDist + 0.0001)) * 0.8 * doorHit.height;
+      const dTop = (H - dHeight) / 2 + pitchOffset;
+      const shade = Math.max(40, 200 - dDist * 30);
+      c.fillStyle = `rgb(${shade},${shade * 0.6},${shade * 0.3})`;
+      c.fillRect(col, dTop, 1, dHeight);
+    }
     if (glassHit) {
       const gDist = glassHit.dist * Math.cos(rayAngle - player.angle);
       const gHeight = (H / (gDist + 0.0001)) * 0.8;
-
       const gTop = (H - gHeight) / 2 + pitchOffset;
-
       const alpha = Math.max(0.5, 0.1 + gDist * 0.15);
       const shade = Math.max(50, 200 - gDist * 15) | 0;
       const fog = Math.min(perpDist * 12, 120) | 0;
-
       c.fillStyle = `rgba(${shade - fog, 40 / alpha},${shade - fog, 40 / alpha},${shade - fog, 40 / alpha},${alpha/2})`;
       c.fillRect(col, gTop, 1, gHeight);
     }
@@ -586,8 +614,6 @@ function drawSprites(time) {
           ang,
           doorKey: key
       });
-      door.open = true; 
-      // door.height < 0.2;
     }
   }
 
@@ -637,7 +663,6 @@ function drawSprites(time) {
       const right = Math.floor(screenX + spriteWidth/2);
       for (let x = left; x <= right; x++) {
           if (x < 0 || x >= W) continue;
-          // if (depthBuffer[x] < s.dist) continue;
           c.fillStyle = 'rgba(255,80,80,0.95)';
           c.fillRect(x, y, 1, spriteHeight);
       }
@@ -658,6 +683,20 @@ function drawSprites(time) {
         c.fillRect(x, y, 1, spriteHeight);
       }
     }
+  }
+}
+
+function updateDoors() {
+  for (let key in doors) {
+    const door = doors[key];
+    const allowed = doorCheck(door, key, {
+      keysCollected,
+      requiredKeys: REQUIRED_KEYS,
+      player,
+      levers,
+      keys: keysMap
+    });
+    door.open = allowed;
   }
 }
 
@@ -704,16 +743,16 @@ function checkGoal() {
 function animateDoors(dt) {
   for (let key in doors) {
     const d = doors[key];
-    if (d.open && d.height > 0) {
+    if (d.open) {
       d.height -= dt * 0.7;
       if (d.height < 0) d.height = 0;
-    }
-    if (d.open && d.height === 0) {
-      const [mx,my] = key.split(',').map(Number);
-      MAP[my][mx] = 0;
+    } else {
+      d.height += dt * 0.7;
+      if (d.height > 1) d.height = 1;
     }
   }
 }
+
 
 function collisionCheck(x, y) {
   const mx = Math.floor(x);
@@ -723,27 +762,11 @@ function collisionCheck(x, y) {
   switch (tile) {
     case 0: return true;
     case 1: return false;
-    case 2:
-      const doorKey = `${mx},${my}`;
-      const door = doors[doorKey];
-
+    case 2: {
+      const door = doors[`${mx},${my}`];
       if (!door) return false;
-
-      const allowed = doorCheck(door, doorKey, {
-        keysCollected,
-        requiredKeys: REQUIRED_KEYS,
-        player,
-        levers,
-        keys: keysMap
-      });
-
-      if (allowed) {
-        door.open = true;
-        return door.height < 0.2;
-      } else {
-        showMsg('Door locked.', 900);
-        return false;
-      }
+      return door.height < 0.1;
+    }
     case 3: return false;
     case 4: return false;
     default: return false;
@@ -759,7 +782,7 @@ function drawMenu() {
 
   if (menuState === MENU.START) {
     c.font = "48px Arial";
-    c.fillText("RAYCAST GAME", W / 2, H / 2 - 60);
+    c.fillText("Rommer", W / 2, H / 2 - 60);
 
     c.font = "24px Arial";
     c.fillText("Press ENTER to Start", W / 2, H / 2);
@@ -780,10 +803,13 @@ function drawMenu() {
     c.fillText("You Escaped!", W / 2, H / 2 - 40);
 
     c.font = "24px Arial";
-    c.fillText("Press ENTER to Restart", W / 2, H / 2 + 10);
+    if (hasNextLevel()) {
+      c.fillText("Press ENTER to go to the next level", W / 2, H / 2 + 10);
+    } else {
+      c.fillText("Press ENTER to Restart", W / 2, H / 2 + 10);
+    }
   }
 }
-
 
 function toggleGame() {
     if (gameRunning) {
@@ -809,6 +835,17 @@ function winGame() {
   gameRunning = false;
   menuState = MENU.WIN;
   document.exitPointerLock();
+}
+
+function hasNextLevel() {
+  return currentLevel + 1 < MAPS.length;
+}
+
+function nextGame() {
+  loadLevel(currentLevel + 1);
+  gameRunning = true;
+  menuState = MENU.NONE;
+  canvas.requestPointerLock();
 }
 
 function restartGame() {
@@ -846,6 +883,7 @@ function animate(now) {
     if (collisionCheck(player.x, ny)) player.y = ny;
 
     checkPickups();
+    updateDoors()
     animateDoors(dt);
     castRays();
     drawSprites(now/1000);
