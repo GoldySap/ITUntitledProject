@@ -11,15 +11,15 @@ let c = canvas.getContext('2d');
 
 const MAPS = [
 {map: [
-[1,1,1,1,1,1,1],
-[1,1,0,0,0,1,1],
-[1,3,0,0,0,3,1],
-[1,1,0,0,0,1,1],
-[1,1,1,2,1,1,1],
-[1,1,0,0,0,1,1],
-[1,1,0,6,0,1,1],
-[1,1,0,0,0,1,1],
-[1,1,1,1,1,1,1]
+[1,1,1,1,1,1,1], //1
+[1,1,0,0,0,1,1], //2
+[1,3,0,0,0,3,1], //3
+[1,1,0,0,0,1,1], //4
+[1,1,1,2,1,1,1], //5
+[1,1,0,0,0,1,1], //6
+[1,1,0,6,0,1,1], //7
+[1,1,0,0,0,1,1], //8
+[1,1,1,1,1,1,1]  //9
 ],
 spawn: { x: 3.5, y: 2.5, angle: 1.58 },
 REQUIRED_KEYS: null,
@@ -31,26 +31,29 @@ dcSpesifics: [
     conditions: [
       {
         type: "levers",
-        states: { "1,2": true },
+        states: { "1,2": true }
+      },
+      {
+        type: "levers",
         states: { "5,2": true }
       },
     ]
   },
 ],},
 {map: [
-[1,1,1,1,1,1,1],
-[1,0,0,0,0,0,1],
-[1,5,0,0,0,5,1],
-[1,0,0,0,0,0,1],
-[1,1,1,2,1,1,1],
-[1,1,0,0,0,1,1],
-[1,1,0,6,0,1,1],
-[1,1,0,0,0,1,1],
-[1,1,1,1,1,1,1]
+[1,1,1,1,1,1,1], //1
+[1,0,0,0,0,0,1], //2
+[1,5,0,0,0,5,1], //3
+[1,0,0,0,0,0,1], //4
+[1,0,0,0,0,0,1], //5
+[1,1,1,2,1,1,1], //6
+[1,1,0,0,0,1,1], //7
+[1,1,0,6,0,1,1], //8
+[1,1,0,0,0,1,1], //9
+[1,1,1,1,1,1,1]  //10
 ],
-
 spawn: { x: 3.5, y: 2.5, angle: 1.58 },
-REQUIRED_KEYS: 2,
+REQUIRED_KEYS: null,
 dcDefault: "allKeys",
 dcSpesifics: [
   {
@@ -59,33 +62,180 @@ dcSpesifics: [
     conditions: [
       {
         type: "specificKey",
-        states: { "1,2": true },
+        states: { "1,2": true }
+      },
+      {
+        type: "specificKey",
         states: { "5,2": true }
       },
     ]
   },
 ],},
 {map: [
-[1,1,1,1,1,1,1,1,1,1,1,1,1],
-[1,0,5,0,1,0,0,0,1,0,0,0,1],
-[1,0,0,0,1,0,0,0,2,0,0,0,1],
-[1,0,0,0,1,0,0,0,1,0,0,0,1],
-[1,1,2,1,1,1,3,1,1,0,0,0,1],
-[3,0,0,0,0,0,0,0,4,0,0,0,1],
-[1,0,0,0,0,0,0,0,4,0,0,0,1],
-[1,1,1,1,2,1,1,1,1,1,1,0,1],
-[1,0,2,0,0,0,0,0,0,0,1,0,1],
-[1,0,1,0,0,0,0,0,0,0,0,0,1],
-[1,0,1,0,0,0,0,0,0,0,1,1,1],
-[1,0,1,1,1,1,0,0,0,0,0,0,1],
-[1,0,0,0,0,1,0,0,0,0,0,0,1],
-[1,1,1,1,0,1,0,0,0,0,0,0,1],
-[1,6,0,1,0,1,0,0,0,0,0,0,1],
-[1,0,0,0,0,1,0,3,0,3,0,3,1],
-[1,1,1,1,1,1,1,1,1,1,1,1,1]
+[1,1,1,1,1,1,1,1,1,1,1], //1
+[1,3,0,0,0,3,0,0,0,3,1], //2
+[1,0,0,0,0,0,0,0,0,0,1], //3
+[1,0,0,0,0,0,0,0,0,0,1], //4
+[1,0,0,0,0,0,0,0,0,0,1], //5
+[1,1,2,1,1,2,1,1,2,1,1], //6
+[1,1,1,1,1,0,1,1,1,1,1], //7
+[1,1,1,1,1,0,1,1,1,1,1], //8
+[1,6,0,0,0,0,1,1,1,1,1], //9
+[1,1,1,1,1,1,1,1,1,1,1]  //10
+],
+spawn: { x: 3.5, y: 2.5, angle: 1.58 },
+REQUIRED_KEYS: null,
+dcDefault: "allKeys",
+dcSpesifics: [
+  {
+    pos: "2,5",
+    logic: "AND",
+    conditions: [
+      {
+        type: "levers",
+        states: { "1,1": true }
+      },
+      {
+        type: "levers",
+        states: { "5,1": false }
+      },
+      {
+        type: "levers",
+        states: { "9,1": false }
+      },
+    ]
+  },
+  {
+    pos: "5,5",
+    logic: "AND",
+    conditions: [
+      {
+        type: "levers",
+        states: { "1,1": false }
+      },
+      {
+        type: "levers",
+        states: { "5,1": true }
+      },
+      {
+        type: "levers",
+        states: { "9,1": false }
+      },
+    ]
+  },
+  {
+    pos: "8,5",
+    logic: "AND",
+    conditions: [
+      {
+        type: "levers",
+        states: { "1,1": false }
+      },
+      {
+        type: "levers",
+        states: { "5,1": false }
+      },
+      {
+        type: "levers",
+        states: { "9,1": true }
+      },
+    ]
+  },
+],},
+{map: [
+[1,1,1,1,1,1,1], //1
+[1,5,2,3,2,5,1], //2
+[1,1,0,0,0,1,1], //3
+[1,0,0,0,0,0,1], //4
+[1,0,0,0,0,0,1], //5
+[1,2,4,4,4,2,1], //6
+[1,0,0,0,0,0,1], //7
+[1,0,0,6,0,0,1], //8
+[1,1,0,0,0,1,1], //9
+[1,1,1,1,1,1,1]  //10
+],
+spawn: { x: 3.5, y: 3.5, angle: 1.58 },
+REQUIRED_KEYS: null,
+dcDefault: "allKeys",
+dcSpesifics: [
+  {
+    pos: "2,1",
+    logic: "AND",
+    conditions: [
+      {
+        type: "levers",
+        states: { "3,1": true }
+      },
+    ]
+  },
+  {
+    pos: "4,1",
+    logic: "AND",
+    conditions: [
+      {
+        type: "levers",
+        states: { "3,1": true }
+      },
+    ]
+  },
+  {
+    pos: "1,5",
+    logic: "AND",
+    conditions: [
+      {
+        type: "levers",
+        states: { "3,1": false }
+      },
+      {
+        type: "specificKey",
+        states: { "1,1": true }
+      },
+      {
+        type: "specificKey",
+        states: { "5,1": true }
+      },
+    ]
+  },
+  {
+    pos: "5,5",
+    logic: "AND",
+    conditions: [
+      {
+        type: "levers",
+        states: { "3,1": false }
+      },
+      {
+        type: "specificKey",
+        states: { "1,1": true }
+      },
+      {
+        type: "specificKey",
+        states: { "5,1": true }
+      },
+    ]
+  },
+],},
+{map: [
+[1,1,1,1,1,1,1,1,1,1,1,1,1], //1
+[1,0,5,0,1,0,0,0,1,0,0,0,1], //2
+[1,0,0,0,1,0,0,0,2,0,0,0,1], //3
+[1,0,0,0,1,0,0,0,1,0,0,0,1], //4
+[1,1,2,1,1,1,3,1,1,0,0,0,1], //5
+[3,0,0,0,0,0,0,0,4,0,0,0,1], //6
+[1,0,0,0,0,0,0,0,4,0,0,0,1], //7
+[1,1,1,1,2,1,1,1,1,1,1,0,1], //8
+[1,0,2,0,0,0,0,0,0,0,1,0,1], //9
+[1,0,1,0,0,0,0,0,0,0,0,0,1], //10
+[1,0,1,0,0,0,0,0,0,0,1,1,1], //12
+[1,0,1,1,1,1,0,0,0,0,0,0,1], //13
+[1,0,0,0,0,1,0,0,0,0,0,0,1], //14
+[1,1,1,1,0,1,0,0,0,0,0,0,1], //15
+[1,6,0,1,0,1,0,0,0,0,0,0,1], //16
+[1,0,0,0,0,1,0,3,0,3,0,3,1], //17
+[1,1,1,1,1,1,1,1,1,1,1,1,1]  //18
 ],
 spawn: { x: 6.5, y: 2.5, angle: Math.PI / 2 },
-REQUIRED_KEYS: 0,
+REQUIRED_KEYS: null,
 dcDefault: null,
 dcSpesifics: [
   {
@@ -149,7 +299,7 @@ dcSpesifics: [
 //     ctx.levers?.["17,15"]?.pressed === true
 // });
 
-let currentLevel = 0;
+let currentLevel = 3;
 let MAP = [];
 let REQUIRED_KEYS = 3;
 let keysCollected = 0;
@@ -219,7 +369,7 @@ function scanMapForLevers(){
       }
     }
   }
-};
+}
 
 function scanMapForKeys(){
   for (let y = 0; y < rows; y++) {
@@ -280,7 +430,14 @@ function checkSingleCondition(cond, door, pos, context) {
   switch (cond.type) {
 
     case "allKeys":
-      return context.keysCollected >= context.requiredKeys;
+      switch (context.requiredKeys) {
+        case 0:
+          break;
+        case null:
+          break;
+        default:
+          return context.keysCollected >= context.requiredKeys
+      }
 
     case "specificKey":
       for (const keyPos in cond.states) {
