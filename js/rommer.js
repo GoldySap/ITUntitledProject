@@ -28,6 +28,7 @@ dcSpesifics: [
   {
     pos: "3,4",
     logic: "AND",
+    hint: "Both levers must be activated.",
     conditions: [
       {
         type: "levers",
@@ -39,7 +40,14 @@ dcSpesifics: [
       },
     ]
   },
-],},
+],
+hints: [
+  {
+    pos: "3,1",
+    text: "Both levers affect the same door."
+  },
+]
+},
 {map: [
 [1,1,1,1,1,1,1], //1
 [1,0,0,0,0,0,1], //2
@@ -57,8 +65,9 @@ REQUIRED_KEYS: null,
 dcDefault: "allKeys",
 dcSpesifics: [
   {
-    pos: "3,4",
+    pos: "3,5",
     logic: "AND",
+    hint: "Requires to keys.",
     conditions: [
       {
         type: "specificKey",
@@ -70,7 +79,8 @@ dcSpesifics: [
       },
     ]
   },
-],},
+],
+},
 {map: [
 [1,1,1,1,1,1,1,1,1,1,1], //1
 [1,3,0,0,0,3,0,0,0,3,1], //2
@@ -90,6 +100,7 @@ dcSpesifics: [
   {
     pos: "2,5",
     logic: "AND",
+    hint: "Note: The first is dark, the second is light, the third is bright.",
     conditions: [
       {
         type: "levers",
@@ -108,6 +119,7 @@ dcSpesifics: [
   {
     pos: "5,5",
     logic: "AND",
+    hint: "Note: The first is light, the second is dark, the third is bright.",
     conditions: [
       {
         type: "levers",
@@ -126,6 +138,7 @@ dcSpesifics: [
   {
     pos: "8,5",
     logic: "AND",
+    hint: "Note: The first is light, the second is bright, the third is dark.",
     conditions: [
       {
         type: "levers",
@@ -141,7 +154,8 @@ dcSpesifics: [
       },
     ]
   },
-],},
+],
+},
 {map: [
 [1,1,1,1,1,1,1], //1
 [1,5,2,3,2,5,1], //2
@@ -214,7 +228,8 @@ dcSpesifics: [
       },
     ]
   },
-],},
+],
+},
 {map: [
 [1,1,1,1,1,1,1,1,1,1,1,1,1], //1
 [1,0,5,0,1,0,0,0,1,0,0,0,1], //2
@@ -289,7 +304,8 @@ dcSpesifics: [
       }
     ]
   },
-],},
+],
+},
 ];
 
 // doorSet(doors, "9,5", {
@@ -299,11 +315,12 @@ dcSpesifics: [
 //     ctx.levers?.["17,15"]?.pressed === true
 // });
 
-let currentLevel = 3;
+let currentLevel = 0;
 let MAP = [];
 let REQUIRED_KEYS = 3;
 let keysCollected = 0;
-let msgTimeout = null;
+let msgTimeout = null; 
+let msgms;
 let msg = ''
 let rows = null;
 let cols = null;
@@ -312,6 +329,7 @@ const H = canvas.height = window.innerHeight;
 const doors = {};
 const levers = {};
 const keysMap = {};
+const hintTiles = {};
 const items = [];
 const player = {
   x: 5,
@@ -321,6 +339,11 @@ const player = {
   maxPitch: Math.PI / 4,
   fov: Math.PI / 2.4,
   turn: 0
+};
+const hintLog = [];
+const uiText = {
+  msg: { text: "", timer: 0 },
+  hint: { text: "", timer: 0 }
 };
 const moveSpeed = 2.8;
 const rotSpeed = 2.8;
@@ -335,6 +358,8 @@ const MENU = {
   START: "start",
   PAUSE: "pause",
   WIN: "win",
+  TUTORIAL: "tutorial",
+  HINTS: "hints",
   NONE: "none"
 };
 
@@ -400,7 +425,9 @@ function scanMapForDoors(){
           open: false, 
           height: 1,
           logic: "AND",
-          conditions: []
+          conditions: [],
+          hint: null,
+          hintShown: false 
         };
         console.log(`Door: ${x},${y}`)
       }
@@ -490,12 +517,6 @@ function applyDefault(doors, type) {
   }
 }
 
-function showMsg(text, ms=1200) {
-  msg = text;
-  if (msgTimeout) clearTimeout(msgTimeout);
-  msgTimeout = setTimeout(()=>{ msg = ''; }, ms);
-}
-
 function loadLevel(index) {
   const level = MAPS[index];
   if (!level) return;
@@ -520,6 +541,7 @@ function loadLevel(index) {
   for (let k in doors) delete doors[k];
   for (let k in levers) delete levers[k];
   for (let k in keysMap) delete keysMap[k];
+  hintLog.length = 0;
 
   scanMapForDoors();
   scanMapForLevers();
@@ -537,16 +559,50 @@ function loadLevel(index) {
     door.logic = rule.logic ?? door.logic;
     door.conditions.length = 0;
 
+    if (rule.hint) {
+      door.hint = rule.hint;
+      door.hintShown = false;
+    }
+
     for (const cond of rule.conditions) {
       doorSet(doors, rule.pos, cond);
     }
   }
 
-  showMsg(`Level ${index + 1}`, 1200);
+  for (let k in hintTiles) delete hintTiles[k];
+
+  for (const h of level.hints || []) {
+    hintTiles[h.pos] = {
+      text: h.text,
+      collected: false
+    };
+  }
+
+  showMsg(`Level ${index + 1}`, 1800);
+}
+
+function SRequestPointerLock() {
+  if (document.pointerLockElement === canvas) return;
+  try {
+    canvas.requestPointerLock();
+  } catch (e) {
+    console.warn("Pointer lock failed:", e);
+  }
+}
+
+function SExitPointerLock() {
+  if (document.pointerLockElement !== canvas) return;
+  try {
+    document.exitPointerLock();
+  } catch (e) {
+    console.warn("Exit pointer lock failed:", e);
+  }
 }
 
 canvas.addEventListener("click", () => {
-    canvas.requestPointerLock();
+    if (menuState === MENU.NONE) {
+      SRequestPointerLock();
+    }
 });
 
 document.addEventListener("pointerlockchange", () => {
@@ -556,6 +612,12 @@ document.addEventListener("pointerlockchange", () => {
   }
 });
 
+canvas.addEventListener("mousemove", e => {
+  const rect = canvas.getBoundingClientRect();
+  mouseX = e.clientX - rect.left;
+  mouseY = e.clientY - rect.top;
+});
+
 document.addEventListener("mousemove", e => {
     if (document.pointerLockElement === canvas) {
         const sensitivity = 0.0017;
@@ -563,6 +625,44 @@ document.addEventListener("mousemove", e => {
         player.pitch -= e.movementY * sensitivity;
         player.pitch = Math.max(-player.maxPitch, Math.min(player.maxPitch, player.pitch));
     }
+});
+
+function isHover(cx, cy, w, h) {
+  return (
+    mouseX >= cx - w / 2 &&
+    mouseX <= cx + w / 2 &&
+    mouseY >= cy - h / 2 &&
+    mouseY <= cy + h / 2
+  );
+}
+
+
+canvas.addEventListener("mousedown", () => {
+  if (menuState === MENU.START) {
+    if (isHover(W/2, H/2 - 10, 280, 60)) startGame();
+    if (isHover(W/2, H/2 + 80, 280, 60)) menuState = MENU.TUTORIAL;
+  }
+
+  if (menuState === MENU.PAUSE) {
+    if (isHover(W/2, H/2 - 10, 280, 60)) {
+      startGame();
+      SRequestPointerLock();
+    } else if (isHover(W/2, H/2 + 80, 280, 60)) menuState = MENU.HINTS;
+    else if (isHover(W/2, H/2 + 170, 280, 60)) menuState = MENU.START;
+  }
+
+  else if (menuState === MENU.TUTORIAL) {
+    if (isHover(W/2, H - 100, 260, 60)) {
+      menuState = MENU.START;
+    }
+  }
+
+  else if (menuState === MENU.HINTS) {
+    if (isHover(W/2, H - 100, 260, 60)) {
+      menuState = MENU.PAUSE;
+    }
+  }
+
 });
 
 document.addEventListener("keydown", e => {
@@ -579,10 +679,15 @@ document.addEventListener("keydown", e => {
       e.preventDefault();
       pauseGame();
     }
+    if (!gameRunning) {
+      if (menuState === MENU.TUTORIAL) menuState = MENU.START;
+      else if (menuState === MENU.HINTS) menuState = MENU.PAUSE;
+    }
     if (!gameRunning && MENU.WIN) {
-      document.exitPointerLock
+      SExitPointerLock
     }
   }
+
   if (!gameRunning) return;
 
   if (e.key === "e") tryInteract();
@@ -627,7 +732,7 @@ function castRays() {
     let hitTile = 0;
     let hitX = 0, hitY = 0;
     let glassHit = null;
-    let doorHit = null;
+    // let doorHit = null;
 
     while (dist < 30) {
       dist += 0.02;
@@ -722,14 +827,14 @@ function castRays() {
       c.fillStyle = `${color}`;
       c.fillRect(col, y, 1, lineHeight);
     }
-    if (doorHit) {
-      const dDist = doorHit.dist * Math.cos(rayAngle - player.angle);
-      const dHeight = (H / (dDist + 0.0001)) * 0.8 * doorHit.height;
-      const dTop = (H - dHeight) / 2 + pitchOffset;
-      const shade = Math.max(40, 200 - dDist * 30);
-      c.fillStyle = `rgb(${shade},${shade * 0.6},${shade * 0.3})`;
-      c.fillRect(col, dTop, 1, dHeight);
-    }
+    // if (doorHit) {
+    //   const dDist = doorHit.dist * Math.cos(rayAngle - player.angle);
+    //   const dHeight = (H / (dDist + 0.0001)) * 0.8 * doorHit.height;
+    //   const dTop = (H - dHeight) / 2 + pitchOffset;
+    //   const shade = Math.max(40, 200 - dDist * 30);
+    //   c.fillStyle = `rgb(${shade},${shade * 0.6},${shade * 0.3})`;
+    //   c.fillRect(col, dTop, 1, dHeight);
+    // }
     if (glassHit) {
       const gDist = glassHit.dist * Math.cos(rayAngle - player.angle);
       const gHeight = (H / (gDist + 0.0001)) * 0.8;
@@ -785,6 +890,30 @@ function drawSprites(time) {
           dist,
           ang,
           doorKey: key
+      });
+    }
+  }
+  for (let pos in hintTiles) {
+    const hint = hintTiles[pos];
+    if (hint.collected) continue;
+
+    const [x, y] = pos.split(",").map(Number);
+    const cx = x + 0.5;
+    const cy = y + 0.5;
+
+    const dx = cx - player.x;
+    const dy = cy - player.y;
+    const dist = Math.hypot(dx, dy);
+    let ang = Math.atan2(dy, dx) - player.angle;
+    ang = (ang + Math.PI * 3) % (Math.PI * 2) - Math.PI;
+
+    if (Math.abs(ang) <= player.fov / 2) {
+      sprites.push({
+        type: "hint",
+        x: cx,
+        y: cy,
+        dist,
+        ang
       });
     }
   }
@@ -855,6 +984,22 @@ function drawSprites(time) {
         c.fillRect(x, y, 1, spriteHeight);
       }
     }
+    else if (s.type === "hint") {
+      const spriteHeight = (1 / s.dist) * 180;
+      const spriteWidth  = spriteHeight * 0.7;
+      const bob = Math.sin(time * 3) * 0.12;
+      const y = (H/2) - spriteHeight + bob * 30 + pitchOffset;
+
+      const left = Math.floor(screenX - spriteWidth/2);
+      const right = Math.floor(screenX + spriteWidth/2);
+
+      for (let x = left; x <= right; x++) {
+        if (x < 0 || x >= W) continue;
+        if (depthBuffer[x] < s.dist) continue;
+        c.fillStyle = "rgba(215, 120, 255, 0.95)";
+        c.fillRect(x, y, 1, spriteHeight);
+      }
+    }
   }
 }
 
@@ -898,6 +1043,19 @@ function checkPickups() {
       showMsg('Picked up a key.', 1100);
     }
   }
+  for (let pos in hintTiles) {
+    const hint = hintTiles[pos];
+    if (hint.collected) continue;
+
+    const [x, y] = pos.split(",").map(Number);
+    const dx = x + 0.5 - player.x;
+    const dy = y + 0.5 - player.y;
+
+    if (Math.hypot(dx, dy) < 0.6) {
+      hint.collected = true;
+      showHint(hint.text, 1800);
+    }
+  }
 }
 
 function checkGoal() {
@@ -937,12 +1095,49 @@ function collisionCheck(x, y) {
     case 2: {
       const door = doors[`${mx},${my}`];
       if (!door) return false;
-      return door.height < 0.1;
+      if (door.open === true) {
+          return door.height < 0.1;
+      } else {
+          showMsg('Door locked.', 900);
+          if (door.hint && !door.hintShown) {
+            showHint(door.hint);
+            door.hintShown = true;
+          }
+          return false;
+      }
     }
     case 3: return false;
     case 4: return false;
     default: return false;
   }
+}
+
+function showMsg(text, time = 120) {
+  uiText.msg.text = text;
+  uiText.msg.timer = time;
+}
+
+function showHint(text, time = 120) {
+  uiText.hint.text = text;
+  uiText.hint.timer = time;
+  hintLog.push(text);
+  // uiText.hint.flash = 30;
+}
+
+function drawButton(x, y, w, h, text, hover) {
+  c.fillStyle = hover ? "rgba(255,255,255,0.2)" : "rgba(255,255,255,0.1)";
+  c.strokeStyle = hover ? "#fff" : "#aaa";
+  c.lineWidth = 2;
+
+  c.beginPath();
+  c.roundRect(x - w/2, y - h/2, w, h, 15);
+  c.fill();
+  c.stroke();
+
+  c.fillStyle = "white";
+  c.font = "24px Arial";
+  c.textAlign = "center";
+  c.fillText(text, x, y + 8);
 }
 
 function drawMenu() {
@@ -954,20 +1149,63 @@ function drawMenu() {
 
   if (menuState === MENU.START) {
     c.font = "48px Arial";
-    c.fillText("Rommer", W / 2, H / 2 - 60);
+    c.fillText("Rommer", W / 2, H / 2 - 120);
 
-    c.font = "24px Arial";
-    c.fillText("Press ENTER to Start", W / 2, H / 2);
-    c.fillText("WASD to move • Mouse to look • E to interact", W / 2, H / 2 + 40);
+    const playHover = isHover(W/2, H/2 - 10, 280, 60);
+    const tutHover  = isHover(W/2, H/2 + 80, 280, 60);
+
+    drawButton(W/2, H/2 - 10, 280, 60, "Play", playHover);
+    drawButton(W/2, H/2 + 80, 280, 60, "Tutorial", tutHover);
+  }
+
+  if (menuState === MENU.TUTORIAL) {
+    c.font = "36px Arial";
+    c.fillText("How to Play", W/2, 120);
+
+    c.font = "22px Arial";
+    const lines = [
+      "WASD – Move",
+      "Mouse – Look",
+      "E – Interact with levers (Green Walls)",
+      "Walk into keys (Yellow Squares) to collect them",
+      "Walk into the hints (Purple Squares) to get hints for the level",
+      "Walk into the goal (Blue Square) to win and move onto the next level",
+      "",
+      "Doors (Brown Walls) open when their conditions are met.",
+      "Doormarkers (Blue Squares) indicate the position of open doors",
+      "Look for visual or text clues near doors."
+    ];
+
+    lines.forEach((t, i) =>
+      c.fillText(t, W/2, 200 + i * 30)
+    );
+
+    drawButton(W/2, H - 100, 260, 60, "Back", isHover(W/2, H-100, 260, 60));
+  }
+
+  if (menuState === MENU.HINTS) {
+    c.font = "36px Arial";
+    c.fillText("Discovered Hints", W/2, 120);
+
+    c.font = "20px Arial";
+    hintLog.forEach((h, i) => {
+      c.fillText("• " + h, W/2, 200 + i * 28);
+    });
+
+    if (hintLog.length === 0) {
+      c.fillText("No hints discovered yet.", W/2, 220);
+    }
+
+    drawButton(W/2, H - 100, 260, 60, "Back", isHover(W/2, H-100, 260, 60));
   }
 
   if (menuState === MENU.PAUSE) {
-    c.font = "42px Arial";
-    c.fillText("Paused", W / 2, H / 2 - 40);
+    c.font = "48px Arial";
+    c.fillText("Paused", W / 2, H / 2 - 120);
 
-    c.font = "24px Arial";
-    c.fillText("Press ENTER to Resume", W / 2, H / 2);
-    c.fillText("ESC to Pause", W / 2, H / 2 + 40);
+    drawButton(W/2, H/2 - 10, 280, 60, "Resume", isHover(W/2, H/2 - 10, 280, 60));
+    drawButton(W/2, H/2 + 80, 280, 60, "Hints", isHover(W/2, H/2 + 80, 280, 60));
+    drawButton(W/2, H/2 + 170, 280, 60, "Main Menu", isHover(W/2, H/2 + 170, 280, 60));
   }
 
   if (menuState === MENU.WIN) {
@@ -983,6 +1221,47 @@ function drawMenu() {
   }
 }
 
+function drawTextBox(x, y, text) {
+  if (!text) return;
+
+  c.font = "16px monospace";
+  c.textAlign = "center";
+
+  const padding = 8;
+  const width = c.measureText(text).width + padding * 2;
+
+  c.fillStyle = "rgba(0, 0, 0, 0)";
+  c.fillRect(x - width/2, y - 20, width, 28);
+
+  c.fillStyle = "#ffffff";
+  c.fillText(text, x, y);
+}
+
+function drawUI() {
+  if (uiText.msg.timer > 0) {
+    drawTextBox(
+      W / 2,
+      H - 40,
+      uiText.msg.text
+    );
+  }
+
+  if (uiText.hint.timer > 0) {
+    drawTextBox(
+      W / 2,
+      40,
+      uiText.hint.text
+    );
+  }
+}
+
+function updateUI() {
+  if (!gameRunning) return;
+
+  if (uiText.msg.timer > 0) uiText.msg.timer--;
+  if (uiText.hint.timer > 0) uiText.hint.timer--;
+}
+
 function toggleGame() {
     if (gameRunning) {
         stopGame();
@@ -994,19 +1273,19 @@ function toggleGame() {
 function startGame() {
   gameRunning = true;
   menuState = MENU.NONE;
-  canvas.requestPointerLock();
+  SRequestPointerLock();
 }
 
 function pauseGame() {
   gameRunning = false;
   menuState = MENU.PAUSE;
-  document.exitPointerLock();
+  SExitPointerLock
 }
 
 function winGame() {
   gameRunning = false;
   menuState = MENU.WIN;
-  document.exitPointerLock();
+  SExitPointerLock
 }
 
 function hasNextLevel() {
@@ -1017,14 +1296,14 @@ function nextGame() {
   loadLevel(currentLevel + 1);
   gameRunning = true;
   menuState = MENU.NONE;
-  canvas.requestPointerLock();
+  SRequestPointerLock();
 }
 
 function restartGame() {
   loadLevel(0);
   gameRunning = true;
   menuState = MENU.NONE;
-  canvas.requestPointerLock();
+  SRequestPointerLock();
 }
 
 let last = performance.now();
@@ -1037,6 +1316,8 @@ function animate(now) {
       requestAnimationFrame(animate);
       return;
     }
+
+    updateUI();
 
     checkGoal();
 
@@ -1068,6 +1349,8 @@ function animate(now) {
       c.fillText(`Keys: ${keysCollected} / ${REQUIRED_KEYS}`, 60, 60);
     }
     c.fillText(`${msg}`, canvas.width / 2, canvas.height - 50);
+
+    drawUI();
 
     requestAnimationFrame(animate);
 }
