@@ -67,7 +67,7 @@ dcSpesifics: [
   {
     pos: "3,5",
     logic: "AND",
-    hint: "Requires to keys.",
+    hint: "Requires 2 keys.",
     conditions: [
       {
         type: "specificKey",
@@ -175,6 +175,7 @@ dcSpesifics: [
   {
     pos: "2,1",
     logic: "AND",
+    hint: "Note: The solution is to my Left.",
     conditions: [
       {
         type: "levers",
@@ -185,6 +186,7 @@ dcSpesifics: [
   {
     pos: "4,1",
     logic: "AND",
+    hint: "Note: The solution is to my Right.",
     conditions: [
       {
         type: "levers",
@@ -195,6 +197,7 @@ dcSpesifics: [
   {
     pos: "1,5",
     logic: "AND",
+    hint: "Note: We need the 2 Keys, and the lever must be green.",
     conditions: [
       {
         type: "levers",
@@ -213,6 +216,7 @@ dcSpesifics: [
   {
     pos: "5,5",
     logic: "AND",
+    hint: "Note: We need the 2 Keys, and the lever must be green.",
     conditions: [
       {
         type: "levers",
@@ -256,6 +260,7 @@ dcSpesifics: [
   {
     pos: "8,2",
     logic: "OR",
+    hint: "Note: The lever is near.",
     conditions: [
       {
         type: "levers",
@@ -266,6 +271,7 @@ dcSpesifics: [
   {
     pos: "2,4",
     logic: "OR",
+    hint: "Note: The lever is close.",
     conditions: [
       {
         type: "levers",
@@ -276,6 +282,7 @@ dcSpesifics: [
   {
     pos: "4,7",
     logic: "AND",
+    hint: "Note: The solution: x o x.",
     conditions: [
       {
         type: "levers",
@@ -290,6 +297,7 @@ dcSpesifics: [
   {
     pos: "2,8",
     logic: "AND",
+    hint: "Note: The key is needed and the keys door must be open, but the first lever is should be off.",
     conditions: [
       {
         type: "levers",
@@ -308,6 +316,7 @@ dcSpesifics: [
 },
 ];
 
+// Reminder example for custom condition:
 // doorSet(doors, "9,5", {
 //   type: "custom",
 //   check: (door, pos, ctx) =>
@@ -319,9 +328,7 @@ let currentLevel = 0;
 let MAP = [];
 let REQUIRED_KEYS = 3;
 let keysCollected = 0;
-let msgTimeout = null; 
-let msgms;
-let msg = ''
+let msg = '';
 let rows = null;
 let cols = null;
 const W = canvas.width = window.innerWidth;
@@ -336,8 +343,8 @@ const player = {
   y: 5,
   angle: 0,
   pitch: 0,
-  maxPitch: Math.PI / 4,
-  fov: Math.PI / 2.4,
+  maxPitch: Math.PI / 3,
+  fov: Math.PI / 2.3,
   turn: 0
 };
 const hintLog = [];
@@ -517,6 +524,16 @@ function applyDefault(doors, type) {
   }
 }
 
+function resetLevel() {
+  keysCollected = 0;
+  items.length = 0;
+  goal = null;
+  hintLog.length = 0;
+  for (let k in doors) delete doors[k];
+  for (let k in levers) delete levers[k];
+  for (let k in keysMap) delete keysMap[k];
+}
+
 function loadLevel(index) {
   const level = MAPS[index];
   if (!level) return;
@@ -534,14 +551,7 @@ function loadLevel(index) {
   player.y = level.spawn.y;
   player.angle = level.spawn.angle ?? 0;
 
-  keysCollected = 0;
-  items.length = 0;
-  goal = null;
-
-  for (let k in doors) delete doors[k];
-  for (let k in levers) delete levers[k];
-  for (let k in keysMap) delete keysMap[k];
-  hintLog.length = 0;
+  resetLevel();
 
   scanMapForDoors();
   scanMapForLevers();
@@ -551,7 +561,7 @@ function loadLevel(index) {
   if (level.dcDefault) {
     applyDefault(doors, level.dcDefault);
   }
-
+  
   for (const rule of level.dcSpesifics || []) {
     const door = doors[rule.pos];
     if (!door) continue;
@@ -641,6 +651,7 @@ canvas.addEventListener("mousedown", () => {
   if (menuState === MENU.START) {
     if (isHover(W/2, H/2 - 10, 280, 60)) startGame();
     if (isHover(W/2, H/2 + 80, 280, 60)) menuState = MENU.TUTORIAL;
+    if (isHover(W/2, H/2 + 170, 280, 60)) restartGame();
   }
 
   if (menuState === MENU.PAUSE) {
@@ -1141,9 +1152,11 @@ function drawMenu() {
 
     const playHover = isHover(W/2, H/2 - 10, 280, 60);
     const tutHover  = isHover(W/2, H/2 + 80, 280, 60);
+    const restartHover = isHover(W/2, H/2 + 170, 280, 60);
 
     drawButton(W/2, H/2 - 10, 280, 60, "Play", playHover);
     drawButton(W/2, H/2 + 80, 280, 60, "Tutorial", tutHover);
+    drawButton(W/2, H/2 + 170, 280, 60, "Restart", restartHover);
   }
 
   if (menuState === MENU.TUTORIAL) {
