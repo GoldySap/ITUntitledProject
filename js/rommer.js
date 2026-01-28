@@ -578,7 +578,7 @@ function loadLevel(index) {
     };
   }
 
-  showMsg(`Level ${index + 1}`, 1800);
+  showMsg(`Level ${index + 1}`, 120);
 }
 
 function SRequestPointerLock() {
@@ -646,7 +646,6 @@ canvas.addEventListener("mousedown", () => {
   if (menuState === MENU.PAUSE) {
     if (isHover(W/2, H/2 - 10, 280, 60)) {
       startGame();
-      SRequestPointerLock();
     } else if (isHover(W/2, H/2 + 80, 280, 60)) menuState = MENU.HINTS;
     else if (isHover(W/2, H/2 + 170, 280, 60)) menuState = MENU.START;
   }
@@ -662,7 +661,6 @@ canvas.addEventListener("mousedown", () => {
       menuState = MENU.PAUSE;
     }
   }
-
 });
 
 document.addEventListener("keydown", e => {
@@ -684,7 +682,7 @@ document.addEventListener("keydown", e => {
       else if (menuState === MENU.HINTS) menuState = MENU.PAUSE;
     }
     if (!gameRunning && MENU.WIN) {
-      SExitPointerLock
+      SExitPointerLock();
     }
   }
 
@@ -711,8 +709,8 @@ const TILE0 = {
   floor:   [55, 55, 55]
 };
 
-function shadeColor(rgb, perpDist, factor) {
-  const shade = Math.max(20, 255 - perpDist * factor);
+function shadeColor(rgb, perpDist, depthFactor) {
+  const shade = Math.max(20, 255 - perpDist * depthFactor);
   return `rgb(
     ${(rgb[0] * shade / 255) | 0},
     ${(rgb[1] * shade / 255) | 0},
@@ -732,7 +730,6 @@ function castRays() {
     let hitTile = 0;
     let hitX = 0, hitY = 0;
     let glassHit = null;
-    // let doorHit = null;
 
     while (dist < 30) {
       dist += 0.02;
@@ -783,18 +780,18 @@ function castRays() {
     let lineHeight = (H / (perpDist + 0.0001)) * 0.8;
     const wallTop = (H - lineHeight) / 2 + pitchOffset;
     const wallBottom = wallTop + lineHeight;
-    let factor = 30
+    let depthFactor = 35
 
     // Ceiling
-    c.fillStyle = shadeColor(TILE0.ceiling, perpDist, factor);
+    c.fillStyle = shadeColor(TILE0.ceiling, perpDist, depthFactor);
     c.fillRect(col, 0, 1, (H + wallTop)/2.5 + pitchOffset/2);
 
     // Floor
-    c.fillStyle = shadeColor(TILE0.floor, perpDist, factor * 2);
+    c.fillStyle = shadeColor(TILE0.floor, perpDist, depthFactor * 2);
     c.fillRect(col, wallBottom, 1, H - wallBottom);
 
     if (hitTile === 1) {
-      const shade = Math.max(30, 255 - perpDist * factor) | 0;
+      const shade = Math.max(30, 255 - perpDist * depthFactor) | 0;
       const fog = Math.min(perpDist * 12, 120) | 0;
       c.fillStyle = `rgb(
         ${Math.max(shade - fog, 20)},
@@ -807,7 +804,7 @@ function castRays() {
       const d = doors[key];
       let hscale = d ? d.height : 1;
       let doorLineHeight = lineHeight * hscale;
-      const shade = Math.max(30, 190 - perpDist * factor) | 0;
+      const shade = Math.max(30, 190 - perpDist * depthFactor) | 0;
       const fog = Math.min(perpDist * 12, 120) | 0;
       c.fillStyle = `rgb(
         ${Math.max(shade/1.3 - fog, 20)},
@@ -819,7 +816,7 @@ function castRays() {
       const key = `${hitX},${hitY}`; 
       const lever = levers[key]; 
       const pressed = lever ? lever.pressed : false; 
-      const shade = Math.max(30, 190 - perpDist * factor) | 0;
+      const shade = Math.max(30, 190 - perpDist * depthFactor) | 0;
       const fog = Math.min(perpDist * 12, 120) | 0;
       const color = pressed ? `rgb(${Math.max(shade/1.1 - fog, 20)}, ${Math.max(shade/3 - fog, 20)}, ${Math.max(shade/3 - fog, 20)})` : `rgb(${Math.max(shade/3 - fog, 20)}, ${Math.max(shade/1.1 - fog, 20)}, ${Math.max(shade/3 - fog, 20)})`; 
       const small = lineHeight * 1; 
@@ -827,14 +824,6 @@ function castRays() {
       c.fillStyle = `${color}`;
       c.fillRect(col, y, 1, lineHeight);
     }
-    // if (doorHit) {
-    //   const dDist = doorHit.dist * Math.cos(rayAngle - player.angle);
-    //   const dHeight = (H / (dDist + 0.0001)) * 0.8 * doorHit.height;
-    //   const dTop = (H - dHeight) / 2 + pitchOffset;
-    //   const shade = Math.max(40, 200 - dDist * 30);
-    //   c.fillStyle = `rgb(${shade},${shade * 0.6},${shade * 0.3})`;
-    //   c.fillRect(col, dTop, 1, dHeight);
-    // }
     if (glassHit) {
       const gDist = glassHit.dist * Math.cos(rayAngle - player.angle);
       const gHeight = (H / (gDist + 0.0001)) * 0.8;
@@ -1028,7 +1017,7 @@ function tryInteract() {
         const lever = levers[key];
         if (!lever) return;
         lever.pressed = !lever.pressed;
-        showMsg(lever.pressed ? "Lever activated!" : "Lever reset!", 1000);
+        showMsg(lever.pressed ? "Lever activated!" : "Lever reset!", 120);
     }
 }
 
@@ -1040,7 +1029,7 @@ function checkPickups() {
     if (Math.hypot(dx,dy) < 0.55) {
       it.picked = true;
       keysCollected++;
-      showMsg('Picked up a key.', 1100);
+      showMsg('Picked up a key.', 120);
     }
   }
   for (let pos in hintTiles) {
@@ -1053,7 +1042,8 @@ function checkPickups() {
 
     if (Math.hypot(dx, dy) < 0.6) {
       hint.collected = true;
-      showHint(hint.text, 1800);
+      hint.hintShown = true;
+      showHint(hint.text, 120);
     }
   }
 }
@@ -1083,7 +1073,6 @@ function animateDoors(dt) {
   }
 }
 
-
 function collisionCheck(x, y) {
   const mx = Math.floor(x);
   const my = Math.floor(y);
@@ -1098,7 +1087,7 @@ function collisionCheck(x, y) {
       if (door.open === true) {
           return door.height < 0.1;
       } else {
-          showMsg('Door locked.', 900);
+          showMsg('Door locked.', 120);
           if (door.hint && !door.hintShown) {
             showHint(door.hint);
             door.hintShown = true;
@@ -1121,7 +1110,6 @@ function showHint(text, time = 120) {
   uiText.hint.text = text;
   uiText.hint.timer = time;
   hintLog.push(text);
-  // uiText.hint.flash = 30;
 }
 
 function drawButton(x, y, w, h, text, hover) {
@@ -1180,7 +1168,9 @@ function drawMenu() {
       c.fillText(t, W/2, 200 + i * 30)
     );
 
-    drawButton(W/2, H - 100, 260, 60, "Back", isHover(W/2, H-100, 260, 60));
+    const backHover  = isHover(W/2, H-100, 260, 60);
+
+    drawButton(W/2, H - 100, 260, 60, "Back", backHover);
   }
 
   if (menuState === MENU.HINTS) {
@@ -1196,16 +1186,22 @@ function drawMenu() {
       c.fillText("No hints discovered yet.", W/2, 220);
     }
 
-    drawButton(W/2, H - 100, 260, 60, "Back", isHover(W/2, H-100, 260, 60));
+    const backHover  = isHover(W/2, H-100, 260, 60);
+
+    drawButton(W/2, H - 100, 260, 60, "Back", backHover);
   }
 
   if (menuState === MENU.PAUSE) {
     c.font = "48px Arial";
     c.fillText("Paused", W / 2, H / 2 - 120);
 
-    drawButton(W/2, H/2 - 10, 280, 60, "Resume", isHover(W/2, H/2 - 10, 280, 60));
-    drawButton(W/2, H/2 + 80, 280, 60, "Hints", isHover(W/2, H/2 + 80, 280, 60));
-    drawButton(W/2, H/2 + 170, 280, 60, "Main Menu", isHover(W/2, H/2 + 170, 280, 60));
+    const resumeHover  = isHover(W/2, H/2 - 10, 280, 60);
+    const hintsHover  = isHover(W/2, H/2 + 80, 280, 60);
+    const MainMenuHover  = isHover(W/2, H/2 + 170, 280, 60);
+
+    drawButton(W/2, H/2 - 10, 280, 60, "Resume", resumeHover);
+    drawButton(W/2, H/2 + 80, 280, 60, "Hints", hintsHover);
+    drawButton(W/2, H/2 + 170, 280, 60, "Main Menu", MainMenuHover);
   }
 
   if (menuState === MENU.WIN) {
@@ -1258,9 +1254,19 @@ function drawUI() {
 function updateUI() {
   if (!gameRunning) return;
 
-  if (uiText.msg.timer > 0) uiText.msg.timer--;
-  if (uiText.hint.timer > 0) uiText.hint.timer--;
+  if (uiText.msg.timer > 0) {
+    uiText.msg.timer--;
+  } else if (uiText.msg.timer <= 0) {
+    uiText.msg.text = "";
+  }
+
+  if (uiText.hint.timer > 0) {
+    uiText.hint.timer--;
+  } else if (uiText.hint.timer <= 0) {
+    uiText.hint.text = "";
+  }
 }
+
 
 function toggleGame() {
     if (gameRunning) {
@@ -1279,13 +1285,13 @@ function startGame() {
 function pauseGame() {
   gameRunning = false;
   menuState = MENU.PAUSE;
-  SExitPointerLock
+  SExitPointerLock();
 }
 
 function winGame() {
   gameRunning = false;
   menuState = MENU.WIN;
-  SExitPointerLock
+  SExitPointerLock();
 }
 
 function hasNextLevel() {
