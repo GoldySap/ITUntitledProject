@@ -4,57 +4,26 @@ const screens = {
   loading: document.getElementById("loading-screen"),
   terminal: document.getElementById("terminal-screen")
 };
-
-function show(screen) {
-  Object.values(screens).forEach(s => s.classList.remove("active"));
-  screens[screen].classList.add("active");
-}
-
-loginBtn.onclick = () => {
-  show("loading");
-  fakeLoading(() => show("terminal"));
+const fileSystem = {
+  type: "directory",
+  files: {
+    "core.sys": { type: "file", size: "12KB" },
+    "simulation.exe": { type: "file", size: "2.4MB", executable: true, path: "program/index.html" },
+    "logs": {
+      type: "directory",
+      files: {
+        "boot.log": { type: "file", size: "3KB" },
+        "error.log": { type: "file", size: "1KB" }
+      }
+    },
+    "data": {
+      type: "directory",
+      files: {
+        "signals.dat": { type: "file", size: "6KB" }
+      }
+    }
+  }
 };
-
-function fakeLoading(done) {
-  const text = document.getElementById("loading-text");
-  let dots = 0;
-
-  const interval = setInterval(() => {
-    dots = (dots + 1) % 4;
-    text.textContent = "Authenticating" + ".".repeat(dots);
-  }, 400);
-
-  setTimeout(() => {
-    clearInterval(interval);
-    done();
-  }, 2500);
-}
-
-const output = document.getElementById("output");
-
-function print(text, className = "") {
-  const line = document.createElement("div");
-  line.textContent = text;
-
-  if (className) {
-    line.classList.add(className);
-  }
-
-  output.appendChild(line);
-  output.scrollTop = output.scrollHeight;
-}
-
-const input = document.getElementById("command-input");
-
-input.addEventListener("keydown", e => {
-  if (e.key === "Enter") {
-    const cmd = input.value.trim();
-    input.value = "";
-    print(`${cwd} > ${cmd}`);
-    handleCommand(cmd);
-  }
-});
-
 const commands = {
   ls: {
     desc: "List directory contents",
@@ -137,34 +106,75 @@ const commands = {
   }
 };
 
+function show(screen) {
+  Object.values(screens).forEach(s => s.classList.remove("active"));
+  screens[screen].classList.add("active");
+}
+
+loginBtn.onclick = () => {
+  show("loading");
+  fakeLoading(() => show("terminal"));
+};
+
+function fakeLoading(done) {
+  const text = document.getElementById("loading-text");
+  let dots = 0;
+
+  const interval = setInterval(() => {
+    dots = (dots + 1) % 4;
+    text.textContent = "Authenticating" + ".".repeat(dots);
+  }, 400);
+
+  setTimeout(() => {
+    clearInterval(interval);
+    done();
+  }, 2500);
+}
+
+const output = document.getElementById("output");
+
+function print(text, className = "") {
+  const line = document.createElement("div");
+  line.textContent = text;
+
+  if (className) {
+    line.classList.add(className);
+  }
+
+  output.appendChild(line);
+  output.scrollTop = output.scrollHeight;
+}
+
+const input = document.getElementById("command-input");
+
+input.addEventListener("keydown", e => {
+  if (e.key === "Enter") {
+    const cmd = input.value.trim();
+    input.value = "";
+    print(`${cwd} > ${cmd}`);
+    handleCommand(cmd);
+  }
+});
+
 function handleCommand(input) {
   const [cmd, ...args] = input.split(" ");
   const command = commands[cmd];
-
   if (!command) {
     print("Unknown command");
     return;
   }
-
   command.run(args);
 }
-
 
 function sendToSimulation(type, payload = {}) {
   const frame = document.getElementById("program-frame");
   if (!frame || !frame.contentWindow) return;
-
-  frame.contentWindow.postMessage({
-    type,
-    payload
-  }, "*");
+  frame.contentWindow.postMessage({type, payload}, "*");
 }
 
 function openFile(file) {
   loadFileSequence(file, () => {
-    if (file === "simulation.exe") {
-      openEXE("program/index.html");
-    }
+    openEXE(file.path);
   });
 }
 
@@ -200,28 +210,6 @@ function getDir(pathArray) {
   return dir;
 }
 
-const fileSystem = {
-  type: "directory",
-  files: {
-    "core.sys": { type: "file", size: "12KB" },
-    "simulation.exe": { type: "file", size: "2.4MB", executable: true },
-    "logs": {
-      type: "directory",
-      files: {
-        "boot.log": { type: "file", size: "3KB" },
-        "error.log": { type: "file", size: "1KB" }
-      }
-    },
-    "data": {
-      type: "directory",
-      files: {
-        "signals.dat": { type: "file", size: "6KB" }
-      }
-    }
-  }
-};
-
-
 window.onload = () => {
   show("loading");
   bootSequence(() => show("login"));
@@ -255,9 +243,9 @@ let loadingInterrupted = false;
 
 document.addEventListener("keydown", e => {
   if (e.ctrlKey && e.key.toLowerCase() === "c") {
+    print("^C");
     if (loadingInterrupted === false) {
       loadingInterrupted = true;
-      print("^C");
       print("[ABORTED] Operation cancelled by user");
     }
   }

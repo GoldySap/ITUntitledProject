@@ -1,0 +1,232 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>3D WebGL2 Black Hole (Ray-March)</title>
+  <style>
+    html,body{height:100%;margin:0;background:#000}
+    canvas{width:100vw;height:100vh;display:block}
+    #ui{position:fixed;left:10px;top:10px;color:#fff;font-family:sans-serif}
+    label{display:block;margin:6px 0}
+    #credits{position:fixed;right:10px;bottom:10px;color:#888;font-family:sans-serif;font-size:12px}
+  </style>
+</head>
+<body>
+<canvas id="gl"></canvas>
+<div id="ui">
+  <label>Spin (a): <input id="spin" type="range" min="0" max="0.99" step="0.01" value="0.0"></label>
+  <label>Disk Brightness: <input id="brightness" type="range" min="0" max="6" step="0.1" value="2.0"></label>
+  <label>Exposure: <input id="exposure" type="range" min="0.1" max="5" step="0.1" value="1.0"></label>
+  <div>Drag to orbit — scroll to zoom</div>
+</div>
+<div id="credits">Realtime approximate GR lensing — WebGL2</div>
+
+<script>
+(() => {
+  const canvas = document.getElementById('gl');
+  const gl = canvas.getContext('webgl2', {antialias:true});
+  if(!gl){ alert('WebGL2 required'); return; }
+
+  // Resize
+  function resize(){ canvas.width = innerWidth; canvas.height = innerHeight; gl.viewport(0,0,canvas.width,canvas.height); }
+  addEventListener('resize', resize); resize();
+
+  // Camera (spherical orbit)
+  let camRadius = 6.0, camYaw = 0.0, camPitch = 0.15;
+  let isDragging = false, lastX=0, lastY=0;
+  canvas.addEventListener('pointerdown', e=>{ isDragging=true; lastX=e.clientX; lastY=e.clientY; canvas.setPointerCapture(e.pointerId); });
+  canvas.addEventListener('pointerup', e=>{ isDragging=false; canvas.releasePointerCapture(e.pointerId); });
+  canvas.addEventListener('pointercancel', ()=>isDragging=false);
+  canvas.addEventListener('pointermove', e=>{ if(!isDragging) return; const dx=(e.clientX-lastX)/400; const dy=(e.clientY-lastY)/400; lastX=e.clientX; lastY=e.clientY; camYaw -= dx; camPitch = Math.max(-1.45, Math.min(1.45, camPitch - dy)); });
+  addEventListener('wheel', e=>{ camRadius = Math.max(2.0, Math.min(40.0, camRadius * (1 + e.deltaY*0.001))); e.preventDefault(); }, {passive:false});
+
+  // UI elements
+  const spinEl = document.getElementById('spin');
+  const brightEl = document.getElementById('brightness');
+  const expEl = document.getElementById('exposure');
+
+  // Shaders
+  const vsSource = `#version 300 es
+  precision highp float;
+  layout(location=0) in vec2 a_pos;
+  out vec2 v_uv;
+  void main(){ v_uv = a_pos*0.5 + 0.5; gl_Position = vec4(a_pos,0.0,1.0); }`;
+  const fsSource = `#version 300 es
+precision highp float;
+uniform vec2 u_res;
+uniform float u_time;
+uniform float u_spin;
+uniform float u_brightness;
+uniform float u_exposure;
+uniform vec3 u_camPos;
+uniform mat3 u_camMat;
+in vec2 v_uv;
+out vec4 outColor;
+
+const int MAX_STEPS = 140;
+const float R_S = 1.0; // horizon radius
+const float FAR = 200.0;
+
+// approximate critical impact parameter for photon sphere in Schwarzschild:
+// b_crit = 3*sqrt(3)/2 * R_S ≈ 2.598 * R_S
+const float B_CRIT = 2.598076211 * R_S;
+
+vec3 toneMap(vec3 c){
+  c = 1.0 - exp(-c * u_exposure);
+  return pow(c, vec3(1.0/2.2));
+}
+
+vec3 diskColor(float r, float phi, vec3 velDir, vec3 viewDir){
+  float temp = pow(1.0/r, 0.75);
+  vec3 base = vec3(1.0,0.6,0.2) * temp;
+  float v = 0.45 * sqrt(1.0/r);
+  float dop = 1.0 + v * max(0.0, dot(normalize(velDir), normalize(viewDir)));
+  return base * dop;
+}
+
+void main(){
+  // NDC
+  vec2 ndc = (v_uv * 2.0 - 1.0) * vec2(u_res.x/u_res.y, 1.0);
+  vec3 rayCam = normalize(vec3(ndc.x, ndc.y, -1.0));
+  vec3 rayDir = normalize(u_camMat * rayCam);
+  vec3 pos = u_camPos;
+  vec3 col = vec3(0.0);
+
+  // compute initial impact parameter approximation:
+  // approximate b = | (camPos x rayDir) | / |rayDir_z|  (geometric proxy)
+  // better: perpendicular distance from origin to ray: b0 = length(cross(camPos, rayDir)) / length(rayDir)
+  float b0 = length(cross(pos, rayDir));
+  bool capturedByImpact = (b0 < B_CRIT);
+
+  // we'll still march to allow lensing; track minimum approach distance
+  float minR = 1e9;
+
+  for(int i=0;i<MAX_STEPS;i++){
+    float r = length(pos);
+    minR = min(minR, r);
+    if(r < R_S){ col = vec3(0.0); break; } // inside horizon -> black
+
+    // thin equatorial disk sampling
+    if(abs(pos.z) < 0.03){
+      float rho = length(pos.xy);
+      if(rho > 1.2 * R_S && rho < 60.0){
+        float phi = atan(pos.y, pos.x);
+        vec3 velDir = normalize(vec3(-sin(phi), cos(phi), 0.0));
+        vec3 viewDir = -rayDir;
+        float vis = smoothstep(60.0, 10.0, rho) * 0.8;
+        col += diskColor(rho, phi, velDir, viewDir) * vis * 0.06;
+      }
+    }
+
+    // gravitational deflection
+    vec3 accel = - (R_S * 0.5) * pos / (r*r*r + 1e-6);
+    rayDir = normalize(rayDir + accel * 0.35);
+
+    float step = clamp(0.12 * r, 0.02, 1.2);
+    pos += rayDir * step;
+    if(length(pos) > FAR) break;
+  }
+
+  // decide capture: if ray actually approached inside photon sphere or initial b0 < B_CRIT -> captured
+  bool captured = (minR < 1.5 * R_S) || capturedByImpact || (minR < B_CRIT);
+  // (minR < 1.5*R_S ensures rays crossing photon sphere get captured visually)
+
+  if(captured){
+    // pure black center (optionally add faint gravitational red ring)
+    outColor = vec4(0.0, 0.0, 0.0, 1.0);
+    return;
+  }
+
+  // background star glow & compose
+  float star = pow(max(0.0, dot(normalize(rayDir), vec3(0.0,0.0,1.0))), 12.0);
+  vec3 bg = vec3(0.02,0.04,0.08) + vec3(1.0) * star * 0.75;
+  vec3 outCol = col * u_brightness + bg * 0.35;
+  outColor = vec4(toneMap(outCol), 1.0);
+}`;
+
+  function compile(type, src){
+    const s = gl.createShader(type);
+    gl.shaderSource(s, src);
+    gl.compileShader(s);
+    if(!gl.getShaderParameter(s, gl.COMPILE_STATUS)){
+      console.error(gl.getShaderInfoLog(s));
+      return null;
+    }
+    return s;
+  }
+  const vs = compile(gl.VERTEX_SHADER, vsSource);
+  const fs = compile(gl.FRAGMENT_SHADER, fsSource);
+  if(!vs || !fs) return;
+  const prog = gl.createProgram();
+  gl.attachShader(prog, vs); gl.attachShader(prog, fs);
+  gl.linkProgram(prog);
+  if(!gl.getProgramParameter(prog, gl.LINK_STATUS)){ console.error(gl.getProgramInfoLog(prog)); return; }
+  gl.useProgram(prog);
+
+  // Fullscreen triangle
+  const buf = gl.createBuffer();
+  gl.bindBuffer(gl.ARRAY_BUFFER, buf);
+  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1,-1, 3,-1, -1,3]), gl.STATIC_DRAW);
+  gl.enableVertexAttribArray(0);
+  gl.vertexAttribPointer(0,2,gl.FLOAT,false,0,0);
+
+  // Uniform locations
+  const u_res = gl.getUniformLocation(prog,'u_res');
+  const u_time = gl.getUniformLocation(prog,'u_time');
+  const u_spin = gl.getUniformLocation(prog,'u_spin');
+  const u_brightness = gl.getUniformLocation(prog,'u_brightness');
+  const u_exposure = gl.getUniformLocation(prog,'u_exposure');
+  const u_camPos = gl.getUniformLocation(prog,'u_camPos');
+  const u_camMat = gl.getUniformLocation(prog,'u_camMat');
+
+  // render loop
+  let t0 = performance.now();
+  function render(){
+    resize();
+    gl.viewport(0,0,canvas.width,canvas.height);
+    const t = (performance.now()-t0)*0.001;
+
+    // compute camera pos & basis
+    const cx = camRadius * Math.cos(camPitch) * Math.sin(camYaw);
+    const cy = camRadius * Math.sin(camPitch);
+    const cz = camRadius * Math.cos(camPitch) * Math.cos(camYaw);
+    const camPos = [cx, cy, cz];
+    // forward = normalize(-camPos)
+    const fx = -cx, fy = -cy, fz = -cz;
+    const fn = Math.hypot(fx,fy,fz);
+    const forward = [fx/fn, fy/fn, fz/fn];
+    // arbitrary world up
+    const worldUp = [0,1,0];
+    // right = normalize(cross(forward, worldUp))
+    let rx = forward[1]*worldUp[2] - forward[2]*worldUp[1];
+    let ry = forward[2]*worldUp[0] - forward[0]*worldUp[2];
+    let rz = forward[0]*worldUp[1] - forward[1]*worldUp[0];
+    let rlen = Math.hypot(rx,ry,rz);
+    if(rlen < 1e-6){ rx = 1; ry = 0; rz = 0; rlen = 1; }
+    rx/=rlen; ry/=rlen; rz/=rlen;
+    // up = cross(right, forward)
+    const ux = ry*forward[2] - rz*forward[1];
+    const uy = rz*forward[0] - rx*forward[2];
+    const uz = rx*forward[1] - ry*forward[0];
+
+    // pack camera matrix (3x3) row-major for mat3 in GLSL: columns are basis vectors
+    const camMat = new Float32Array([
+      rx, ux, forward[0],
+      ry, uy, forward[1],
+      rz, uz, forward[2]
+    ]);
+
+    gl.uniform2f(u_res, canvas.width, canvas.height);
+    gl.uniform1f(u_time, t);
+    gl.uniform1f(u_spin, parseFloat(spinEl.value));
+    gl.uniform1f(u_brightness, parseFloat(brightEl.value));
+    gl.uniform1f(u_exposure, parseFloat(expEl.value));
+    gl.uniform3fv(u_camPos, camPos);
+    gl.uniformMatrix3fv(u_camMat, false, camMat);
+
+    gl.drawArrays(gl.TRIANGLES, 0, 3);
+    requestAnimationFrame(render);
+  }
+  requestAnimationFrame(render);
+})();
+</script>
