@@ -8,7 +8,7 @@ const fileSystem = {
   type: "directory",
   files: {
     "core.sys": { type: "file", size: "12KB" },
-    "simulation.exe": { type: "file", size: "2.4MB", executable: true, path: "program/index.html" },
+    "simulation.exe": { type: "file", size: "2.4MB", executable: true, path: "programs/index.html" },
     "logs": {
       type: "directory",
       files: {
@@ -70,10 +70,8 @@ const commands = {
       const entry = dir.files[file];
 
       if (!entry) return print("[ERROR] File not found");
-
-      loadFileSequence(file, () => {
-        if (file === "simulation.exe") openEXE("programs/index.html");
-      });
+      
+      openFile(file, entry);
     }
   },
 
@@ -172,12 +170,6 @@ function sendToSimulation(type, payload = {}) {
   frame.contentWindow.postMessage({type, payload}, "*");
 }
 
-function openFile(file) {
-  loadFileSequence(file, () => {
-    openEXE(file.path);
-  });
-}
-
 let cwd = "/";
 
 function resolvePath(path) {
@@ -240,12 +232,18 @@ function bootSequence(done) {
 }
 
 let loadingInterrupted = false;
+let fileOpen = false;
 
 document.addEventListener("keydown", e => {
   if (e.ctrlKey && e.key.toLowerCase() === "c") {
     print("^C");
     if (loadingInterrupted === false) {
       loadingInterrupted = true;
+      if (fileOpen) {
+        closeFile();
+        fileOpen = false;
+        return;
+      };
       print("[ABORTED] Operation cancelled by user");
     }
   }
@@ -318,27 +316,55 @@ function printInline(text) {
   output.innerHTML = lines.join("\n");
 }
 
-function openEXE(src) {
+function openFile(file, entry) {
   const win = document.getElementById("simulation-window");
   const frame = document.getElementById("program-frame");
+  console.log(entry.path)
 
-  frame.src = src;
-  win.style.display = "block";
-  input.focus(); 
+  function iframe() {
+    fileOpen = true;
+    let src = entry.path
+    frame.src = src;
+    win.style.display = "block";
+    input.focus(); 
+  }
+
+  function check() {
+    switch (true) {
+      case file.endsWith(".sys"):
+        return print("Cannot access file.")
+      case file.endsWith(".exe"):
+        loadFileSequence(file, () => {
+          if (file.endsWith(".exe")) {
+            iframe();
+          }
+        });
+        break
+      default:
+        print("Could open file")
+        break
+    }
+  }
+
+  check()
+
+  // loadFileSequence(file, () => {
+  //   if (file.endsWith(".exe")) {
+  //     iframe();
+  //   }
+  // });
 }
 
-function closeEXE() {
-
+function closeFile() {
   const win = document.getElementById("simulation-window");
   const frame = document.getElementById("program-frame");
 
   frame.src = "";
   win.style.display = "none";
-
   print("[SHUTDOWN] aplication closed");
 }
 
-document.querySelector(".window-close").onclick = closeEXE;
+document.querySelector(".window-close").onclick = closeFile;
 const titleBar = document.querySelector(".window-titlebar");
 const win = document.getElementById("simulation-window");
 
